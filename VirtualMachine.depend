@@ -1,0 +1,9 @@
+# depslib dependency file v1.0
+1756936320 source:d:\facultad\programacion 3\guia 1\virtualmachine\main.c
+	<stdio.h>
+	<stdlib.h>
+
+1756937038 source:d:\facultad\arquitectura\mv\virtualmachine\main.c
+	<stdio.h>
+	<stdlib.h>
+
