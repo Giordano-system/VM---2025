@@ -23,9 +23,8 @@ int main(){
     char cabecera[8];
     leerCabecera(cabecera);
     if (analizoValidez(cabecera)){
-        printf("iuju");
+        printf("%X",cabecera[6]);
     }
-    printf("%X",cabecera[6]);
     return 0;
 }
 
