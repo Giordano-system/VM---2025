@@ -9,13 +9,14 @@ typedef struct TSR{
 
 typedef struct VM {
     char * Memoria[16384];
-    TSR tabla_seg [8];
+    TSR tabla_seg[8];
     int Registros[32];
 } VM;
 
 void leerCabecera(char []);
-int analizoValidez(char[]);
-void iniciabilizarTablaSegmentos(VM*,char[]);
+int analizoValidez(char []);
+void iniciabilizarTablaSegmentos(VM *,char []);
+void lecturaArchivo(VM *);
 
 
 int main(){
@@ -23,7 +24,8 @@ int main(){
     char cabecera[8];
     leerCabecera(cabecera);
     if (analizoValidez(cabecera)){
-        printf("%X",cabecera[6]);
+        lecturaArchivo(&MaquinaVirtual);
+        printf("%X",MaquinaVirtual.Memoria[0]);
     }
     return 0;
 }
@@ -41,7 +43,7 @@ void leerCabecera(char cabecera[8]){
         fclose(arch);
     }
     else{
-        printf("hola no");
+        printf("No se pudo abrir el archivo.\n");
     }
 }
 
@@ -58,4 +60,30 @@ void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, char cabecera[8]){
     MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | cabecera[7] ;
     MaquinaVirtual->tabla_seg[1].base=MaquinaVirtual->tabla_seg[0].tamano;
     MaquinaVirtual->tabla_seg[1].tamano=16777216-MaquinaVirtual->tabla_seg[0].tamano;
+}
+
+void lecturaArchivo(VM *MaquinaVirtual){
+    FILE * arch;
+    unsigned char byte;
+    int i;
+
+    arch=fopen("sample.vmx","rb");
+    if (arch){
+
+        for(i=0;i<8;i++)
+            fread(&byte,1,1,arch);
+
+        fread(&byte,1,1,arch);
+        i=0;
+        while(!feof(arch)){
+            MaquinaVirtual->Memoria[i]=byte;
+            i++;
+            fread(&byte,1,1,arch);
+        }
+
+        fclose(arch);
+    }
+    else{
+        printf("No se pudo abrir el archivo.\n");
+    }
 }
