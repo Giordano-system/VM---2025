@@ -13,6 +13,80 @@ typedef struct VM {
     int Registros[32];
 } VM;
 
+typedef void (*puntFunc)(VM *);
+
+puntFunc operaciones[] {
+    sys,
+    jmp,
+    jz,
+    jp,
+    jn,
+    jnz,
+    jnp,
+    jnn,
+    not,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    NULL,
+    mov,
+    add,
+    sub,
+    mul,
+    div,
+    cmp,
+    shl,
+    shr,
+    sar,
+    and,
+    or,
+    xor,
+    swap,
+    ldl,
+    ldh,
+    rnd
+}
+
+// Funciones de operacion
+void sys(VM *);
+void jmp(VM *);
+void jp(VM *);
+void jn(VM *);
+void jnz(VM *);
+void jnp(VM *);
+void jnn(VM *);
+void not(VM *);
+void mov(VM *);
+void add(VM *);
+void mul(VM *);
+void div(VM *);
+void cmp(VM *);
+void shl(VM *);
+void shr(VM *);
+void sar(VM *);
+void and(VM *);
+void or(VM *);
+void xor(VM *);
+void swap(VM *);
+void ldl(VM *);
+void ldh(VM *);
+void rnd(VM *);
+
+
+
+
+
+
+
+
+
+
+
+
+
 void leerCabecera(char []);
 int analizoValidez(char []);
 void iniciabilizarTablaSegmentos(VM *,char []);
@@ -99,8 +173,7 @@ void inicializoRegistros(VM *MaquinaVirtual){
 */
 
 int logica_fisica(VM *MaquinaVirtual, int registro){
-    int base,offset, valor;
-    valor = registro >> 16;
+    int base,offset;
     base = MaquinaVirtual->tabla_seg[registro >> 16].base;
     offset = registro & 0xFFFF;
     return base + offset;
