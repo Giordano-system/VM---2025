@@ -17,6 +17,8 @@ void leerCabecera(char []);
 int analizoValidez(char []);
 void iniciabilizarTablaSegmentos(VM *,char []);
 void lecturaArchivo(VM *);
+void inicializoRegistros(VM *);
+int logica_fisica(VM *, int);
 
 
 int main(){
@@ -24,8 +26,8 @@ int main(){
     char cabecera[8];
     leerCabecera(cabecera);
     if (analizoValidez(cabecera)){
+        iniciabilizarTablaSegmentos(&MaquinaVirtual,cabecera);
         lecturaArchivo(&MaquinaVirtual);
-        printf("%X",MaquinaVirtual.Memoria[0]);
     }
     return 0;
 }
@@ -55,7 +57,7 @@ int analizoValidez(char cabecera[]){
     return i==6;
 }
 
-void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, char cabecera[8]){
+void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, char cabecera[]){
     MaquinaVirtual->tabla_seg[0].base=0;
     MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | cabecera[7] ;
     MaquinaVirtual->tabla_seg[1].base=MaquinaVirtual->tabla_seg[0].tamano;
@@ -87,3 +89,20 @@ void lecturaArchivo(VM *MaquinaVirtual){
         printf("No se pudo abrir el archivo.\n");
     }
 }
+
+/*
+void inicializoRegistros(VM *MaquinaVirtual){
+    *MaquinaVirtual->Registros[26]=*MaquinaVirtual->tabla_seg[0]->base; //Asigno CS
+    *MaquinaVirtual->Registros[27]=*MaquinaVirtual->tabla_seg[1]->base; //Asigno DS
+    *MaquinaVirtual->Registros[3]=*MaquinaVirtual->Registros[26]; //Asigno CS a IP
+}
+*/
+
+int logica_fisica(VM *MaquinaVirtual, int registro){
+    int base,offset, valor;
+    valor = registro >> 16;
+    base = MaquinaVirtual->tabla_seg[registro >> 16].base;
+    offset = registro & 0xFFFF;
+    return base + offset;
+}
+
