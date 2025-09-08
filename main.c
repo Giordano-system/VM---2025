@@ -1,16 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include "acceso_memoria.h"
 
-typedef struct TSR{
-    unsigned short int base;
-    unsigned short int tamano;
-} TSR;
-
-typedef struct VM {
-    char * Memoria[16384];
-    TSR tabla_seg[8];
-    int Registros[32];
-} VM;
 
 typedef void (*puntFunc)(VM *);
 
@@ -158,14 +149,6 @@ void inicializoRegistros(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[27]=MaquinaVirtual->tabla_seg[1].base; //Asigno DS
     MaquinaVirtual->Registros[3]=MaquinaVirtual->Registros[26]; //Asigno CS a IP
 }
-
-int logica_fisica(VM MaquinaVirtual, int registro){
-    int base,offset;
-    base = MaquinaVirtual.tabla_seg[registro >> 16].base;
-    offset = registro & 0xFFFF;
-    return base + offset;
-}
-
 
 
 
