@@ -1,5 +1,5 @@
 #include "tipos.h"
 
-void getVM(VM*,int,int*);
-void setVM(VM*,int,int);
+void getMemoria(VM*,int,int*);
+void setMemoria(VM*,int,int);
 int logica_fisica(VM,int);

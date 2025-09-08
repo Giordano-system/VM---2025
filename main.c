@@ -23,6 +23,8 @@ void iniciabilizarTablaSegmentos(VM *,char []);
 void lecturaArchivo(VM *);
 void inicializoRegistros(VM *);
 int logica_fisica(VM, int);
+void getGeneral(VM *,int,int *);
+void setGeneral(VM *,int,int);
 
 
 int main(){
@@ -150,6 +152,26 @@ void inicializoRegistros(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[3]=MaquinaVirtual->Registros[26]; //Asigno CS a IP
 }
 
+void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
+    switch(operando >> 30) {
+        case 1:
+            *valor = MaquinaVirtual->Registros[operando & 0x1F];
+            break;
+        case 2:
+            *valor = operando & 0xFF;
+            break;
+        case 3:
+            getMemoria(MaquinaVirtual,operando,valor);
+            break;
+    }
+}
+
+void setGeneral(VM *MaquinaVirtual, int operando, int valor){
+    if(operando >> 30 == 1)
+        MaquinaVirtual->Registros[operando & 0x1F] = valor;
+    else
+        setMemoria(MaquinaVirtual,operando,valor);
+}
 
 
 void sys(VM *MaquinaVirtual){}
@@ -162,7 +184,12 @@ void jnp(VM *MaquinaVirtual){}
 void jnn(VM *MaquinaVirtual){}
 void not(VM *MaquinaVirtual){}
 void mov(VM *MaquinaVirtual){}
-void add(VM *MaquinaVirtual){}
+void add(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A); // Agarro lo que hay en OP1
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B); // Agarro lo que hay en OP2
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A + B); // Seteo OP1 con el valor de la operacion
+}
 void sub(VM *MaquinaVirtual){}
 void mul(VM *MaquinaVirtual){}
 void divv(VM *MaquinaVirtual){}
