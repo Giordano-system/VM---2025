@@ -31,9 +31,14 @@
 		<Compiler>
 			<Add option="-Wall" />
 		</Compiler>
+		<Unit filename="acceso_memoria.c">
+			<Option compilerVar="CC" />
+		</Unit>
+		<Unit filename="acceso_memoria.h" />
 		<Unit filename="main.c">
 			<Option compilerVar="CC" />
 		</Unit>
+		<Unit filename="tipos.h" />
 		<Extensions>
 			<lib_finder disable_auto="1" />
 		</Extensions>
