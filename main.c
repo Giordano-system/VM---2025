@@ -25,6 +25,7 @@ void inicializoRegistros(VM *);
 int logica_fisica(VM, int);
 void getGeneral(VM *,int,int *);
 void setGeneral(VM *,int,int);
+void actualizaCC(VM *,int);
 
 
 int main(){
@@ -173,34 +174,140 @@ void setGeneral(VM *MaquinaVirtual, int operando, int valor){
         setMemoria(MaquinaVirtual,operando,valor);
 }
 
+void actualizaCC(VM *MaquinaVirtual, int valor){
+    if(valor > 0)
+        MaquinaVirtual->Registros[17] = 0;
+    else if(valor == 0)
+        MaquinaVirtual->Registros[17] = 1 << 30;
+    else
+        MaquinaVirtual->Registros[17] = 1 << 31;
+}
 
 void sys(VM *MaquinaVirtual){}
-void jmp(VM *MaquinaVirtual){}
-void jz(VM *MaquinaVirtual){}
-void jp(VM *MaquinaVirtual){}
-void jn(VM *MaquinaVirtual){}
-void jnz(VM *MaquinaVirtual){}
-void jnp(VM *MaquinaVirtual){}
-void jnn(VM *MaquinaVirtual){}
-void not(VM *MaquinaVirtual){}
-void mov(VM *MaquinaVirtual){}
+void jmp(VM *MaquinaVirtual){
+    MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jz(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 1)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jp(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 0 && MaquinaVirtual->Registros[17] >> 31 & 1 == 0)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jn(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 31 & 1 == 1)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jnz(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 0)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jnp(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 1 || MaquinaVirtual->Registros[17] >> 31 & 1 == 1)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void jnn(VM *MaquinaVirtual){
+    if(MaquinaVirtual->Registros[17] >> 31 & 1 == 0)
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+}
+void not(VM *MaquinaVirtual){
+
+}
+void mov(VM *MaquinaVirtual){
+    int B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], B);
+}
 void add(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A); // Agarro lo que hay en OP1
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B); // Agarro lo que hay en OP2
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A + B); // Seteo OP1 con el valor de la operacion
+    actualizaCC(MaquinaVirtual, A + B); // Actualizo el registro CC
 }
-void sub(VM *MaquinaVirtual){}
-void mul(VM *MaquinaVirtual){}
-void divv(VM *MaquinaVirtual){}
-void cmp(VM *MaquinaVirtual){}
-void shl(VM *MaquinaVirtual){}
-void shr(VM *MaquinaVirtual){}
+void sub(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A - B);
+    actualizaCC(MaquinaVirtual, A - B);
+}
+void mul(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A * B);
+    actualizaCC(MaquinaVirtual, A * B);
+}
+void divv(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    // Chequear que el operando 2 (B) sea distinto de 0
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A / B);
+    actualizaCC(MaquinaVirtual, A / B);
+    MaquinaVirtual->Registros[16] = A % B; // Actualiza el registro AC con el resto de la division
+}
+void cmp(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    actualizaCC(MaquinaVirtual, A - B);
+}
+void shl(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A << B);
+    actualizaCC(MaquinaVirtual, A << B);
+}
+void shr(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A >> B);
+    actualizaCC(MaquinaVirtual, A >> B);
+}
 void sar(VM *MaquinaVirtual){}
-void and(VM *MaquinaVirtual){}
-void or(VM *MaquinaVirtual){}
-void xor(VM *MaquinaVirtual){}
-void swap(VM *MaquinaVirtual){}
-void ldl(VM *MaquinaVirtual){}
-void ldh(VM *MaquinaVirtual){}
+void and(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A & B);
+    actualizaCC(MaquinaVirtual, A & B);
+}
+void or(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A | B);
+    actualizaCC(MaquinaVirtual, A | B);
+}
+void xor(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A ^ B);
+    actualizaCC(MaquinaVirtual, A ^ B);
+}
+void swap(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], A);
+}
+void ldl(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], (A & 0xFFFF) << 16 | (B & 0xFFFF));
+}
+void ldh(VM *MaquinaVirtual){
+    int A,B;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], (A & 0xFFFF0000) | (B & 0xFFFF));
+}
 void rnd(VM *MaquinaVirtual){}
