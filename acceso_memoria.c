@@ -1,15 +1,19 @@
 #include "acceso_memoria.h"
 
 int logica_fisica(VM MaquinaVirtual, int registro){
-    int base,offset;
+    int base,offset, valor;
     base = MaquinaVirtual.tabla_seg[registro >> 16].base;
     offset = registro & 0xFFFF;
-    return base + offset;
+    if(base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano && base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base)
+        valor = base + offset;
+    else
+        valor = -1;
+    return valor;
 }
 
 void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
     int pos,i,aux;
-    MaquinaVirtual->Registros[0] = (operando & 0xFFFF) | (MaquinaVirtual->Registros[operando >> 16 & 0x1F] >> 16 << 16); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
+    MaquinaVirtual->Registros[0] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[operando >> 16 & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
     MaquinaVirtual->Registros[1] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[0]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
     pos = MaquinaVirtual->Registros[1] & 0xFFFF; // pos tiene la direccion fisica para acceder a memoria
     *valor = MaquinaVirtual->Memoria[pos];
@@ -26,7 +30,7 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
 
 void setMemoria(VM *MaquinaVirtual, int operando, int valor){
     int pos,i;
-    MaquinaVirtual->Registros[0] = operando & 0x0000FFFF | (MaquinaVirtual->Registros[operando >> 16 & 0x1F] >> 16 << 16); //Tomo el offset del operando y el seg del registro y se lo asigno al LAR
+    MaquinaVirtual->Registros[0] = operando & 0x0000FFFF + (MaquinaVirtual->Registros[operando >> 16 & 0x1F]); //Tomo el offset del operando y el seg del registro y se lo asigno al LAR CORREGIR
     MaquinaVirtual->Registros[1] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[0]); //Paso la LAR para que me calcule la posicion fisica de este y almacenarlo en la MAR
     pos = MaquinaVirtual->Registros[1] & 0xFFFF;
     MaquinaVirtual->Memoria[pos] = (valor >> 24) & 0xFF; //Asigno el byte mas significativo de valor a la primera posicion de memoria ocupada por el valor

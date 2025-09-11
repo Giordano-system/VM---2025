@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "acceso_memoria.h"
+#define IP
 
 
 typedef void (*puntFunc)(VM *);
@@ -31,7 +32,7 @@ void actualizaCC(VM *,int);
 int main(){
     VM MaquinaVirtual;
     char cabecera[8], byte;
-    int aux, i, n, pos;
+    int aux, i, n, pos, valor;
 
     leerCabecera(cabecera);
     if (analizoValidez(cabecera)){
@@ -60,6 +61,7 @@ int main(){
 
             // Lectura operandos 2 y 1 (probar modularizar)
             n = MaquinaVirtual.Registros[6] >> 30;
+            printf("%d",n);
             aux = 0;
             for(i=0; i<n; i++){
                 pos++;
@@ -69,6 +71,7 @@ int main(){
             MaquinaVirtual.Registros[6] |= aux;
 
             n = MaquinaVirtual.Registros[5] >> 30;
+            printf("%d",n);
             aux = 0;
             for(i=0; i<n; i++){
                 pos++;
@@ -84,7 +87,7 @@ int main(){
             operaciones[MaquinaVirtual.Registros[4]];
             printf("%X / %X / %X / %X",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
 
-        } while(MaquinaVirtual.Registros[4] != 0x0F); // OPC != STOP
+        } while(MaquinaVirtual.Registros[4] != 0x01F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[3])!= -1); // OPC != STOP
     }
     return 0;
 }
@@ -212,7 +215,10 @@ void jnn(VM *MaquinaVirtual){
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void not(VM *MaquinaVirtual){
-
+    int A;
+    getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &A);
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], ~A);
+    actualizaCC(MaquinaVirtual, ~A);
 }
 void mov(VM *MaquinaVirtual){
     int B;
@@ -310,4 +316,6 @@ void ldh(VM *MaquinaVirtual){
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], (A & 0xFFFF0000) | (B & 0xFFFF));
 }
-void rnd(VM *MaquinaVirtual){}
+void rnd(VM *MaquinaVirtual){
+
+}
