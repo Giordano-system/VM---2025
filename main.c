@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "acceso_memoria.h"
+#include <time.h>
 #define IP
 
 
@@ -192,7 +193,6 @@ unsigned int shiftRightLogico(int valor,int shift){
     return resultado >> shift;
 }
 
-void sys(VM *MaquinaVirtual){}
 void jmp(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
@@ -281,7 +281,9 @@ void shr(VM *MaquinaVirtual){
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A >> B);
     actualizaCC(MaquinaVirtual, A >> B);
 }
-void sar(VM *MaquinaVirtual){}
+void sar(VM *MaquinaVirtual){
+
+}
 void and(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
@@ -323,5 +325,119 @@ void ldh(VM *MaquinaVirtual){
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], (A & 0xFFFF0000) | (B & 0xFFFF));
 }
 void rnd(VM *MaquinaVirtual){
+    srand((int)time(NULL));
+    int r,max;
+    getGeneral(MaquinaVirtual,MaquinaVirtual->Registros[6],&max);
+    if (max>0)
+        r = rand() % (max+1);
+    else
+        r = 0;
+    setGeneral(MaquinaVirtual,MaquinaVirtual->Registros[5],r);
+}
+
+void sys(VM *MaquinaVirtual){
+    int tarea = MaquinaVirtual->Registros[5] & 0x2;
+    int numCeldas = MaquinaVirtual->Registros[12] & 0xFFFF; //Tomo los 2 bytes menos significativos de ecx
+    int numBytes = MaquinaVirtual->Registros[12] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
+    numBytes = shiftRightLogico(numBytes,16);
+    int edx = MaquinaVirtual->Registros[13]; //A donde apunta edx es a partir de donde se empieza a leer/escribir
+    int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
+    //AGREGAR MODIFICACION LAR Y MAR
+    if (tarea == 1){ //Escribir en memoria
+        int i;
+        for (i=0;i<numCeldas;i++){
+            int valido=1;
+            long int valor;
+            long int valorMax, valorMin;
+            valorMin = -(1 << (8*numBytes - 1));
+            valorMax = (1 << (8*numBytes - 1)) - 1;
+            do{
+                printf("Celda %d: \n", i);
+                switch(eax){
+                    case 0x01: {
+                        if(scanf("%d",&valor)!=1){
+                            printf("Entrada invalida \n");
+                            while(getchar()!="\n");
+                            valido = 0; //Fuerzo repetir
+                        }
+                    } break;
+                    case 0x02:{
+                        char c;
+                        if(scanf("%c",&c)!=1){
+                            printf("Entrada invalida \n");
+                            while(getchar()!="\n");
+                            valido = 0; //Fuerzo repetir
+                        }
+                        valor = (unsigned char) c;
+                    }break;
+                    case 0x04:{ //Octal
+                        if(scanf("%lo",&valor)!=1){
+                            printf("Entrada invalida \n");
+                            while(getchar()!="\n");
+                            valido = 0; //Fuerzo repetir
+                        }
+                    }break;
+                    case 0x08:{ //Hexadecimal
+                        if(scanf("%lx",&valor)!=1){
+                            printf("Entrada invalida \n");
+                            while(getchar()!="\n");
+                            valido = 0; //Fuerzo repetir
+                        }
+                    }break;
+                    case 0x10:{
+                        char bits[64];
+                        int k;
+                        for (k=0;k<64;k++){
+                            valor = valor << 1;
+                            if (bits[k]==1)
+                                valor |=1;
+                            else if(bits[k]!=0)
+                                valido = 0;
+                        }
+                    }break;
+                    default: {
+                        printf("Metodo invalido \n");
+                        //TERMINAR SYS
+                    }
+                }
+                if (!(valido && (valor>=valorMin && valor<=valorMax)))
+                    valido = 0;
+            }while (valido);
+            int j;
+            for (j=0;j<numBytes;j++){
+                MaquinaVirtual->Memoria[edx + i*numBytes + j] = shiftRightLogico(valor, 8*(numBytes-j-1));
+            }
+        }
+    }else{ //Leer de memoria
+        int i;
+        for (i=0;i<numCeldas;i++){
+            long int valor;
+            int j;
+            for (j=0;j<numBytes;j++){
+                char aux = MaquinaVirtual->Memoria[edx + i*numBytes + j];
+                valor = (valor << 8) | aux;
+            }
+            switch(eax){
+                case 0x01: printf("%d", valor); break; //Decimal
+                case 0x02: {
+                    if (isprint((unsigned char)valor))
+                        printf("%c", (char)valor);
+                    else
+                        printf(".");
+                } break; //Caracteres
+                case 0x04: printf("%o ", valor); break; //Octal
+                case 0x08: printf("%X ", valor); break; //Hexadecimal
+                case 0x10: {
+                    int k;
+                    for (k = 8*numBytes; k>0; k--)
+                        printf("%d", (shiftRightLogico(valor,k) & 1));
+                } break;
+                default:{
+                    printf("%lX - %lo - %c - %ld", valor, valor, isprint((unsigned char)valor) ? (char)valor : '.', valor);
+                }
+            }
+        }
+    }
 
 }
+

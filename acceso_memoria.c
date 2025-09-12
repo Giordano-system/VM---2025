@@ -11,10 +11,14 @@ int logica_fisica(VM MaquinaVirtual, int registro){
     return valor;
 }
 
-void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
-    int pos,i,aux;
+void modificoLAR_MAR(VM *MaquinaVirtual, int operando){
     MaquinaVirtual->Registros[0] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[operando >> 16 & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
     MaquinaVirtual->Registros[1] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[0]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
+}
+
+void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
+    int pos,i,aux;
+    modificoLAR_MAR(MaquinaVirtual, operando);
     pos = MaquinaVirtual->Registros[1] & 0xFFFF; // pos tiene la direccion fisica para acceder a memoria
     *valor = MaquinaVirtual->Memoria[pos];
     *valor = *valor << 24; //Los primeros 8 bits que leo son los mas significativos, entonces los corro (ver posibilidad de GENERALIZAR)
@@ -30,8 +34,7 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
 
 void setMemoria(VM *MaquinaVirtual, int operando, int valor){
     int pos,i;
-    MaquinaVirtual->Registros[0] = operando & 0x0000FFFF + (MaquinaVirtual->Registros[operando >> 16 & 0x1F]); //Tomo el offset del operando y el seg del registro y se lo asigno al LAR CORREGIR
-    MaquinaVirtual->Registros[1] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[0]); //Paso la LAR para que me calcule la posicion fisica de este y almacenarlo en la MAR
+    modificoLAR_MAR(MaquinaVirtual, operando);
     pos = MaquinaVirtual->Registros[1] & 0xFFFF;
     MaquinaVirtual->Memoria[pos] = (valor >> 24) & 0xFF; //Asigno el byte mas significativo de valor a la primera posicion de memoria ocupada por el valor
     for (i=0;i<3;i++){
