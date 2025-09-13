@@ -102,11 +102,10 @@ int main(int argc, char *argv[]){
     leerCabecera(cabecera,argv[1]);
     if (analizoValidez(cabecera)){
         iniciabilizarTablaSegmentos(&MaquinaVirtual,cabecera);
-        //printf("Base CS: %X  Base DS: %X\n",MaquinaVirtual.tabla_seg[0].base,MaquinaVirtual.tabla_seg[1].base);
+        printf("Base CS: %X  Base DS: %X\n",MaquinaVirtual.tabla_seg[0].base,MaquinaVirtual.tabla_seg[1].base);
         inicializoRegistros(&MaquinaVirtual);
-        //printf("IP: %X  CS: %X DS: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[26],MaquinaVirtual.Registros[27]);
+        printf("IP: %X  CS: %X DS: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[26],MaquinaVirtual.Registros[27]);
         lecturaArchivo(&MaquinaVirtual,argv[1]);
-
         do {
             //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
             // Guardo la dimension fisica de IP en pos y guardo el valor de memoria de esa posición
@@ -146,7 +145,7 @@ int main(int argc, char *argv[]){
             }
             MaquinaVirtual.Registros[5] |= aux;
 
-            //if(argc == 3 && strcmp(argv[2],"-d"))
+            if(argc == 3 && strcmp(argv[2],"-d"))
                 desensamblado(MaquinaVirtual,1 + n1 + n2);
 
             // Mover IP
@@ -154,7 +153,7 @@ int main(int argc, char *argv[]){
 
             // Ejecuta instrucción
             operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
-            //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
+            printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
             //printf("EAX: %d, N: %d, Z: %d, AC: %d\n",MaquinaVirtual.Registros[10],shiftRightLogico(MaquinaVirtual.Registros[17],31),MaquinaVirtual.Registros[17] >> 30 & 1, MaquinaVirtual.Registros[16]);
 
         } while(MaquinaVirtual.Registros[4] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[3])!= -1); // OPC != STOP
@@ -166,7 +165,7 @@ void leerCabecera(char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("pruebaoperaciones.vmx","rb");
+    arch = fopen("pruebaSYS.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -199,7 +198,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("pruebaoperaciones.vmx","rb");
+    arch=fopen("pruebaSYS.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -269,8 +268,8 @@ void jz(VM *MaquinaVirtual){
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jp(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 0 && MaquinaVirtual->Registros[17] >> 31 & 1 == 0)
-        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
+    if((((MaquinaVirtual->Registros[17] >> 30) & 1) == 0) && (((MaquinaVirtual->Registros[17] >> 31) & 1) == 0))
+        MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF); //Salta a cualquier lado(?
 }
 void jn(VM *MaquinaVirtual){
     if(MaquinaVirtual->Registros[17] >> 31 & 1 == 1)
@@ -408,63 +407,66 @@ void rnd(VM *MaquinaVirtual){
 }
 
 void sys(VM *MaquinaVirtual){
-    int tarea = MaquinaVirtual->Registros[5] & 0x2;
+    int tarea = (MaquinaVirtual->Registros[5]) & 0x3;
     int numCeldas = MaquinaVirtual->Registros[12] & 0xFFFF; //Tomo los 2 bytes menos significativos de ecx
     int numBytes = MaquinaVirtual->Registros[12] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
-    int edx = MaquinaVirtual->Registros[13]; //A donde apunta edx es a partir de donde se empieza a leer/escribir
     int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
     //AGREGAR MODIFICACION LAR Y MAR
     if (tarea == 1){ //Escribir en memoria
         int i;
         for (i=0;i<numCeldas;i++){
             int valido=1;
-            long int valor;
+            long int valor=0;
             long int valorMax, valorMin;
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
             do{
-                printf("Celda %d: \n", i);
+                printf("Celda %d: ", i);
                 switch(eax){
                     case 0x01: {
-                        if(scanf("%d",&valor)!=1){
+                        if(scanf(" %d",&valor)!=1){
                             printf("Entrada invalida \n");
-                            while(getchar()!="\n");
                             valido = 0; //Fuerzo repetir
                         }
                     } break;
                     case 0x02:{
                         char c;
-                        if(scanf("%c",&c)!=1){
-                            printf("Entrada invalida \n");
-                            while(getchar()!="\n");
+                        if(scanf(" %c",&c)!=1){
+                            //printf("Entrada invalida \n");
                             valido = 0; //Fuerzo repetir
                         }
                         valor = (unsigned char) c;
                     }break;
                     case 0x04:{ //Octal
-                        if(scanf("%lo",&valor)!=1){
+                        if(scanf(" %lo",&valor)!=1){
                             printf("Entrada invalida \n");
-                            while(getchar()!="\n");
                             valido = 0; //Fuerzo repetir
                         }
                     }break;
                     case 0x08:{ //Hexadecimal
-                        if(scanf("%lx",&valor)!=1){
+                        if(scanf("% lx",&valor)!=1){
                             printf("Entrada invalida \n");
-                            while(getchar()!="\n");
                             valido = 0; //Fuerzo repetir
                         }
                     }break;
                     case 0x10:{
-                        char bits[64];
+                        char bits[65]; //Numero de 64 bits y \n
                         int k;
-                        for (k=0;k<64;k++){
+                        if (scanf(" %64s",bits)!=1){
+                            printf("Entrada Invalida \n");
+                            valido=0;
+                        }
+                        for (k=0;bits[k]!='\0';k++){
+                            printf("K: %d -", k);
                             valor = valor << 1;
-                            if (bits[k]==1)
+                            if (bits[k]=='1')
                                 valor |=1;
-                            else if(bits[k]!=0)
+                            else if(bits[k]!='0'){
+                                break;
                                 valido = 0;
+                            }
+                            printf("Valor al momento: %d \n", valor);
                         }
                     }break;
                     default: {
@@ -474,38 +476,52 @@ void sys(VM *MaquinaVirtual){
                 }
                 if (!(valido && (valor>=valorMin && valor<=valorMax)))
                     valido = 0;
-            }while (valido);
-            int j;
+            }while (!valido);
+            int j, base;
+            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            long int posicion;
             for (j=0;j<numBytes;j++){
-                MaquinaVirtual->Memoria[edx + i*numBytes + j] = shiftRightLogico(valor, 8*(numBytes-j-1));
+                posicion = base + i*numBytes + j;
+                MaquinaVirtual->Memoria[posicion] = shiftRightLogico(valor, 8*(numBytes-j-1));
             }
+
         }
     }else{ //Leer de memoria
         int i;
         for (i=0;i<numCeldas;i++){
-            long int valor;
-            int j;
+            long int valor=0;
+            int j, base;
+            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            long int posicion;
             for (j=0;j<numBytes;j++){
-                char aux = MaquinaVirtual->Memoria[edx + i*numBytes + j];
+                posicion=base + i*numBytes + j;
+                unsigned char aux = MaquinaVirtual->Memoria[posicion];
                 valor = (valor << 8) | aux;
             }
             switch(eax){
-                case 0x01: printf("%d", valor); break; //Decimal
+                case 0x01: printf("%d \n", valor); break; //Decimal
                 case 0x02: {
                     if (isprint((unsigned char)valor))
-                        printf("%c", (char)valor);
+                        printf("%c \n", (char)valor);
                     else
                         printf(".");
                 } break; //Caracteres
-                case 0x04: printf("%o ", valor); break; //Octal
-                case 0x08: printf("%X ", valor); break; //Hexadecimal
+                case 0x04: printf("%o \n", valor); break; //Octal
+                case 0x08: printf("%X \n", valor); break; //Hexadecimal
                 case 0x10: {
                     int k;
-                    for (k = 8*numBytes; k>0; k--)
+                    for (k = 8*numBytes-1; k>=0; k--){
                         printf("%d", (shiftRightLogico(valor,k) & 1));
+                        if (k % 4 == 0 && k != 0)
+                            printf(" ");
+                    }
+                    printf("\n");
+                } break;
+                case 0x1F:{
+                    printf("%X - %o - %c - %d \n", valor, valor, isprint((unsigned char)valor) ? (char)valor : '.', valor);
                 } break;
                 default:{
-                    printf("%lX - %lo - %c - %ld", valor, valor, isprint((unsigned char)valor) ? (char)valor : '.', valor);
+                    printf("Metodo invalido \n");
                 }
             }
         }
