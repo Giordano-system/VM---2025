@@ -75,9 +75,10 @@ void jnz(VM *); void jnp(VM *); void jnn(VM *); void not(VM *); void mov(VM *);
 void add(VM *); void sub(VM *); void mul(VM *); void divv(VM *); void cmp(VM *);
 void shl(VM *); void shr(VM *); void sar(VM *); void and(VM *); void or(VM *);
 void xor(VM *); void swap(VM *); void ldl(VM *); void ldh(VM *); void rnd(VM *);
+void stop(VM *);
 
 puntFunc operaciones[0x20] = {
-    sys,jmp,jz,jp,jn,jnz,jnp,jnn,not,NULL,NULL,NULL,NULL,NULL,NULL,NULL,mov,add,
+    sys,jmp,jz,jp,jn,jnz,jnp,jnn,not,NULL,NULL,NULL,NULL,NULL,NULL,stop,mov,add,
     sub,mul,divv,cmp,shl,shr,sar,and,or,xor,swap,ldl,ldh,rnd
 };
 
@@ -86,77 +87,40 @@ int analizoValidez(char []);
 void iniciabilizarTablaSegmentos(VM *,char []);
 void lecturaArchivo(VM *,char []);
 void inicializoRegistros(VM *);
+void cargaoperacion(VM *);
 int logica_fisica(VM, int);
 void getGeneral(VM *,int,int *);
 void setGeneral(VM *,int,int);
 void actualizaCC(VM *,int);
 unsigned int shiftRightLogico(int,int);
-void desensamblado(VM,int);
+void desensamblado(VM *);
 
 
 int main(int argc, char *argv[]){
     VM MaquinaVirtual;
-    char cabecera[8], byte;
-    int aux, i, n1, n2, pos, valor;
+    char cabecera[8];
 
     leerCabecera(cabecera,argv[1]);
     if (analizoValidez(cabecera)){
         iniciabilizarTablaSegmentos(&MaquinaVirtual,cabecera);
-        printf("Base CS: %X  Base DS: %X\n",MaquinaVirtual.tabla_seg[0].base,MaquinaVirtual.tabla_seg[1].base);
+        //printf("Base CS: %X  Base DS: %X\n",MaquinaVirtual.tabla_seg[0].base,MaquinaVirtual.tabla_seg[1].base);
         inicializoRegistros(&MaquinaVirtual);
-        printf("IP: %X  CS: %X DS: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[26],MaquinaVirtual.Registros[27]);
+        //printf("IP: %X  CS: %X DS: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[26],MaquinaVirtual.Registros[27]);
         lecturaArchivo(&MaquinaVirtual,argv[1]);
         do {
             //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
-            // Guardo la dimension fisica de IP en pos y guardo el valor de memoria de esa posición
-            pos = logica_fisica(MaquinaVirtual,MaquinaVirtual.Registros[3]);
-            byte = MaquinaVirtual.Memoria[pos];
-
-            // Actualizo OPC
-            MaquinaVirtual.Registros[4] = byte & 0x1F;
-
-            // Actualizo primeros 2 bits de OP1 y OP2
-            if(((byte >> 4) & 1) == 0 && ((byte >> 5) & 1) == 0){
-                MaquinaVirtual.Registros[5] = shiftRightLogico(byte,6); // OP1
-                MaquinaVirtual.Registros[6] = 0; // OP2
-            } else {
-                MaquinaVirtual.Registros[5] = byte >> 4 & 0x03; // OP1
-                MaquinaVirtual.Registros[6] = shiftRightLogico(byte,6); // OP2
-            }
-            MaquinaVirtual.Registros[5] <<= 30; // OP1
-            MaquinaVirtual.Registros[6] <<= 30; // OP2
-
-            // Lectura operandos 2 y 1 (probar modularizar)
-            n1 = shiftRightLogico(MaquinaVirtual.Registros[6], 30);
-            aux = 0;
-            for(i=0; i<n1; i++){
-                pos++;
-                byte = MaquinaVirtual.Memoria[pos];
-                aux = aux | (byte & 0xFF) << (8 * (n1-i-1));
-            }
-            MaquinaVirtual.Registros[6] |= aux;
-
-            n2 = shiftRightLogico(MaquinaVirtual.Registros[5], 30);
-            aux = 0;
-            for(i=0; i<n2; i++){
-                pos++;
-                byte = MaquinaVirtual.Memoria[pos];
-                aux = aux | (byte & 0xFF) << (8 * (n2-i-1));
-            }
-            MaquinaVirtual.Registros[5] |= aux;
-
-            if(argc == 3 && strcmp(argv[2],"-d"))
-                desensamblado(MaquinaVirtual,1 + n1 + n2);
+            cargaoperacion(&MaquinaVirtual);
 
             // Mover IP
-            MaquinaVirtual.Registros[3] += 1 + n1 + n2;
+            MaquinaVirtual.Registros[3] += 1 + shiftRightLogico(MaquinaVirtual.Registros[5], 30) + shiftRightLogico(MaquinaVirtual.Registros[6], 30);
 
             // Ejecuta instrucción
             operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
-            printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
+            //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
             //printf("EAX: %d, N: %d, Z: %d, AC: %d\n",MaquinaVirtual.Registros[10],shiftRightLogico(MaquinaVirtual.Registros[17],31),MaquinaVirtual.Registros[17] >> 30 & 1, MaquinaVirtual.Registros[16]);
-
         } while(MaquinaVirtual.Registros[4] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[3])!= -1); // OPC != STOP
+        //if(argc == 3 && strcmp(argv[2],"-d"))
+            desensamblado(&MaquinaVirtual);
     }
     return 0;
 }
@@ -165,7 +129,7 @@ void leerCabecera(char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("pruebaSYS.vmx","rb");
+    arch = fopen("pruebajump.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -198,7 +162,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("pruebaSYS.vmx","rb");
+    arch=fopen("pruebajump.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -223,6 +187,48 @@ void inicializoRegistros(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[26]=0; //Asigno CS
     MaquinaVirtual->Registros[27]=1 << 16; //Asigno DS
     MaquinaVirtual->Registros[3]=MaquinaVirtual->Registros[26]; //Asigno CS a IP
+}
+
+void cargaoperacion(VM *MaquinaVirtual){
+    char byte;
+    int aux, i, n1, n2, pos;
+
+    // Guardo la dimension fisica de IP en pos y guardo el valor de memoria de esa posición
+    pos = logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[3]);
+    byte = MaquinaVirtual->Memoria[pos];
+
+    // Actualizo OPC
+    MaquinaVirtual->Registros[4] = byte & 0x1F;
+
+    // Actualizo primeros 2 bits de OP1 y OP2
+    if(((byte >> 4) & 1) == 0 && ((byte >> 5) & 1) == 0){
+        MaquinaVirtual->Registros[5] = shiftRightLogico(byte,6); // OP1
+        MaquinaVirtual->Registros[6] = 0; // OP2
+    } else {
+        MaquinaVirtual->Registros[5] = byte >> 4 & 0x03; // OP1
+        MaquinaVirtual->Registros[6] = shiftRightLogico(byte,6); // OP2
+    }
+    MaquinaVirtual->Registros[5] <<= 30; // OP1
+    MaquinaVirtual->Registros[6] <<= 30; // OP2
+
+    // Lectura operandos 2 y 1 (probar modularizar)
+    n1 = shiftRightLogico(MaquinaVirtual->Registros[6], 30);
+    aux = 0;
+    for(i=0; i<n1; i++){
+        pos++;
+        byte = MaquinaVirtual->Memoria[pos];
+        aux = aux | (byte & 0xFF) << (8 * (n1-i-1));
+    }
+    MaquinaVirtual->Registros[6] |= aux;
+
+    n2 = shiftRightLogico(MaquinaVirtual->Registros[5], 30);
+    aux = 0;
+    for(i=0; i<n2; i++){
+        pos++;
+        byte = MaquinaVirtual->Memoria[pos];
+        aux = aux | (byte & 0xFF) << (8 * (n2-i-1));
+    }
+    MaquinaVirtual->Registros[5] |= aux;
 }
 
 void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
@@ -264,7 +270,7 @@ void jmp(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jz(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 1)
+    if(((MaquinaVirtual->Registros[17] >> 30) & 1) == 1)
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jp(VM *MaquinaVirtual){
@@ -272,7 +278,7 @@ void jp(VM *MaquinaVirtual){
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF); //Salta a cualquier lado(?
 }
 void jn(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[17] >> 31 & 1 == 1)
+    if(((MaquinaVirtual->Registros[17] >> 31) & 1) == 1)
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jnz(VM *MaquinaVirtual){
@@ -280,11 +286,11 @@ void jnz(VM *MaquinaVirtual){
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jnp(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[17] >> 30 & 1 == 1 || MaquinaVirtual->Registros[17] >> 31 & 1 == 1)
+    if((((MaquinaVirtual->Registros[17] >> 30) & 1) == 1) || (((MaquinaVirtual->Registros[17] >> 31) & 1) == 1))
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void jnn(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[17] >> 31 & 1 == 0)
+    if(((MaquinaVirtual->Registros[17] >> 31) & 1) == 0)
         MaquinaVirtual->Registros[3] = ((MaquinaVirtual->Registros[3] >> 16) << 16) | (MaquinaVirtual->Registros[5] & 0xFFFF);
 }
 void not(VM *MaquinaVirtual){
@@ -528,52 +534,62 @@ void sys(VM *MaquinaVirtual){
     }
 }
 
-void desensamblado(VM MaquinaVirtual, int inc){
+void stop(VM *MaquinaVirtual){}
+
+void desensamblado(VM *MaquinaVirtual){
     short int posfisica;
-    int i;
+    int i, inc;
 
-    posfisica = logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[3]);
-    printf("[%04X] ", posfisica);
+    MaquinaVirtual->Registros[3] = MaquinaVirtual->Registros[26];
+    do {
+        cargaoperacion(MaquinaVirtual);
 
-    for(i=posfisica; i<posfisica + inc; i++)
-        printf("%02X ",MaquinaVirtual.Memoria[i]);
+        posfisica = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[3]);
+        printf("[%04X] ", posfisica);
 
-    for(i=0; i<7-inc;i++)
-        printf("   ");
+        inc = 1 + shiftRightLogico(MaquinaVirtual->Registros[5], 30) + shiftRightLogico(MaquinaVirtual->Registros[6], 30);
+        for(i=posfisica; i<posfisica + inc; i++)
+            printf("%02X ",MaquinaVirtual->Memoria[i]);
 
-    printf(" |  %s ",Mnemonicos[MaquinaVirtual.Registros[4]]);
+        for(i=0; i<7-inc;i++)
+            printf("   ");
 
-    switch((MaquinaVirtual.Registros[5] >> 30) & 0x3) {
-        case 1:
-            printf("%s",registros[MaquinaVirtual.Registros[5] & 0x1F]);
-            break;
-        case 2:
-            printf("%d",(MaquinaVirtual.Registros[5] & 0xFFFF) << 16 >> 16);
-            break;
-        case 3:
-            if((MaquinaVirtual.Registros[5] & 0xFFFF) == 0)
-                printf("[%s]",registros[(MaquinaVirtual.Registros[5] >> 16) & 0x1F]);
-            else
-                printf("[%s + %d]",registros[(MaquinaVirtual.Registros[5] >> 16) & 0x1F],MaquinaVirtual.Registros[5] & 0xFFFF);
-            break;
-    }
+        printf(" |  %s ",Mnemonicos[MaquinaVirtual->Registros[4]]);
 
-    if(((MaquinaVirtual.Registros[6] >> 30) & 0x3) != 0)
-        printf(", ");
+        switch((MaquinaVirtual->Registros[5] >> 30) & 0x3) {
+            case 1:
+                printf("%s",registros[MaquinaVirtual->Registros[5] & 0x1F]);
+                break;
+            case 2:
+                printf("%d",(MaquinaVirtual->Registros[5] & 0xFFFF) << 16 >> 16);
+                break;
+            case 3:
+                if((MaquinaVirtual->Registros[5] & 0xFFFF) == 0)
+                    printf("[%s]",registros[(MaquinaVirtual->Registros[5] >> 16) & 0x1F]);
+                else
+                    printf("[%s + %d]",registros[(MaquinaVirtual->Registros[5] >> 16) & 0x1F],MaquinaVirtual->Registros[5] & 0xFFFF);
+                break;
+        }
 
-    switch((MaquinaVirtual.Registros[6] >> 30) & 0x3) {
-        case 1:
-            printf("%s",registros[MaquinaVirtual.Registros[6] & 0x1F]);
-            break;
-        case 2:
-            printf("%d ",(MaquinaVirtual.Registros[6] & 0xFFFF) << 16 >> 16);
-            break;
-        case 3:
-            if((MaquinaVirtual.Registros[6] & 0xFFFF) == 0)
-                printf("[%s]",registros[(MaquinaVirtual.Registros[6] >> 16) & 0x1F]);
-            else
-                printf("[%s + %d]",registros[(MaquinaVirtual.Registros[6] >> 16) & 0x1F],MaquinaVirtual.Registros[6] & 0xFFFF);
-            break;
-    }
-    printf("\n");
+        if(((MaquinaVirtual->Registros[6] >> 30) & 0x3) != 0)
+            printf(", ");
+
+        switch((MaquinaVirtual->Registros[6] >> 30) & 0x3) {
+            case 1:
+                printf("%s",registros[MaquinaVirtual->Registros[6] & 0x1F]);
+                break;
+            case 2:
+                printf("%d ",(MaquinaVirtual->Registros[6] & 0xFFFF) << 16 >> 16);
+                break;
+            case 3:
+                if((MaquinaVirtual->Registros[6] & 0xFFFF) == 0)
+                    printf("[%s]",registros[(MaquinaVirtual->Registros[6] >> 16) & 0x1F]);
+                else
+                    printf("[%s + %d]",registros[(MaquinaVirtual->Registros[6] >> 16) & 0x1F],MaquinaVirtual->Registros[6] & 0xFFFF);
+                break;
+        }
+        printf("\n");
+
+        MaquinaVirtual->Registros[3] += inc;
+    }while(MaquinaVirtual->Registros[4] != 0x0F && logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[3])!= -1);
 }

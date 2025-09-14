@@ -4,7 +4,7 @@ int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
     base = MaquinaVirtual.tabla_seg[registro >> 16].base;
     offset = registro & 0xFFFF;
-    if(base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano && base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base)
+    if((base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano) && (base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base))
         valor = base + offset;
     else
         valor = -1;
