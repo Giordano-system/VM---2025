@@ -522,31 +522,35 @@ void sys(VM *MaquinaVirtual){
                 unsigned char aux = MaquinaVirtual->Memoria[posicion];
                 valor = (valor << 8) | aux;
             }
-            switch(eax){
-                case 0x01: printf("%d \n", valor); break; //Decimal
-                case 0x02: {
-                    if (isprint((unsigned char)valor))
-                        printf("%c \n", (char)valor);
-                    else
-                        printf(".");
-                } break; //Caracteres
-                case 0x04: printf("%o \n", valor); break; //Octal
-                case 0x08: printf("%X \n", valor); break; //Hexadecimal
-                case 0x10: {
-                    int k;
-                    for (k = 8*numBytes-1; k>=0; k--){
-                        printf("%d", (shiftRightLogico(valor,k) & 1));
-                        if (k % 4 == 0 && k != 0)
-                            printf(" ");
-                    }
-                    printf("\n");
-                } break;
-                case 0x1F:{
-                    printf("%X - %o - %c - %d \n", valor, valor, isprint((unsigned char)valor) ? (char)valor : '.', valor);
-                } break;
+        int k=0;
+        while (k<5){
+            int bit = shiftRightLogico(eax,k);
+            if (bit){
+                switch(k){
+                    case 0: printf("%d \n", valor); break; //Decimal
+                    case 1: {
+                        if (isprint((unsigned char)valor))
+                            printf("%c \n", (char)valor);
+                        else
+                            printf(".");
+                    } break; //Caracteres
+                    case 2: printf("%o \n", valor); break; //Octal
+                    case 3: printf("%X \n", valor); break; //Hexadecimal
+                    case 4: {
+                        int k;
+                        for (k = 8*numBytes-1; k>=0; k--){
+                            printf("%d", (shiftRightLogico(valor,k) & 1));
+                            if (k % 4 == 0 && k != 0)
+                                printf(" ");
+                        }
+                        printf("\n");
+                    } break;
                 default:{
                     printf("Metodo invalido \n");
                 }
+            }
+        }
+
             }
         }
     }
