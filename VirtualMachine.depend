@@ -33,6 +33,8 @@
 
 1757963968 c:\users\54223\documents\arquitectura\vm---2025\tipos.h
 
-1757960908 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
+1757964301 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
 	"acceso_memoria.h"
+	<stdio.h>
+	<stdlib.h>
 

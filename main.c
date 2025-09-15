@@ -133,7 +133,7 @@ int main(int argc, char *argv[]){
                 exit(1);
             }
         } while(MaquinaVirtual.Registros[OPC] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1); // OPC != STOP
-        if(argc > 1 && strcmp(argv[2],"-d"))
+        if(argc == 3 && strcmp(argv[2],"-d") == 0)
             desensamblado(&MaquinaVirtual);
     }
     return 0;
@@ -545,13 +545,13 @@ void sys(VM *MaquinaVirtual){
                         }
                         printf("\n");
                     } break;
-                default:{
-                    printf("Metodo invalido \n");
+                    default:{
+                        printf("Metodo invalido \n");
+                    }
                 }
             }
+        k++;
         }
-
-            }
         }
     }
 }
