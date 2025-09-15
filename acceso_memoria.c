@@ -4,10 +4,13 @@ int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
     base = MaquinaVirtual.tabla_seg[registro >> 16].base;
     offset = registro & 0xFFFF;
-    if((base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano) && (base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base))
+    if((base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano) && (base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base)) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
         valor = base + offset;
-    else
+    else{
         valor = -1;
+        printf("Se produjo una invasion de memoria. Segmentation Fold");
+        exit(1);
+    }
     return valor;
 }
 

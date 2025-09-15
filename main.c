@@ -115,6 +115,7 @@ int main(int argc, char *argv[]){
             MaquinaVirtual.Registros[3] += 1 + shiftRightLogico(MaquinaVirtual.Registros[5], 30) + shiftRightLogico(MaquinaVirtual.Registros[6], 30);
 
             // Ejecuta instrucción
+            //ANTES DE EJECUTAR VALIDAR QUE LA OPERACION SEA REALIZABLE SINO TIRAR EXIT(1)
             operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
             //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
             //printf("EAX: %d, N: %d, Z: %d, AC: %d\n",MaquinaVirtual.Registros[10],shiftRightLogico(MaquinaVirtual.Registros[17],31),MaquinaVirtual.Registros[17] >> 30 & 1, MaquinaVirtual.Registros[16]);
@@ -329,10 +330,15 @@ void divv(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[6], &B);
-    // Chequear que el operando 2 (B) sea distinto de 0
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A / B);
-    actualizaCC(MaquinaVirtual, A / B);
-    MaquinaVirtual->Registros[16] = A % B; // Actualiza el registro AC con el resto de la division
+    if (B!=0){
+        setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[5], A / B);
+        actualizaCC(MaquinaVirtual, A / B);
+        MaquinaVirtual->Registros[16] = A % B; //Actualizo el AC con el resto de la division
+    }
+    else{
+        printf("No es posible dividir por cero. Proceso detenido.");
+        exit(1);
+    }
 }
 void cmp(VM *MaquinaVirtual){
     int A,B;
