@@ -115,8 +115,12 @@ int main(int argc, char *argv[]){
             MaquinaVirtual.Registros[3] += 1 + shiftRightLogico(MaquinaVirtual.Registros[5], 30) + shiftRightLogico(MaquinaVirtual.Registros[6], 30);
 
             // Ejecuta instrucción
-            //ANTES DE EJECUTAR VALIDAR QUE LA OPERACION SEA REALIZABLE SINO TIRAR EXIT(1)
-            operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
+            if ((MaquinaVirtual.Registros[4]>=0x00 && MaquinaVirtual.Registros[4]<=0x08)||(MaquinaVirtual.Registros[4]>=15 && MaquinaVirtual.Registros[4]<=31)) //Si la funcion no es reconocida aborto proceso.
+                operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
+            else{
+                printf("Instruccion Invalida. Abortando proceso");
+                exit(1);
+            }
             //printf("IP: %X  OPC: %X OP1: %X OP2: %X\n",MaquinaVirtual.Registros[3],MaquinaVirtual.Registros[4],MaquinaVirtual.Registros[5],MaquinaVirtual.Registros[6]);
             //printf("EAX: %d, N: %d, Z: %d, AC: %d\n",MaquinaVirtual.Registros[10],shiftRightLogico(MaquinaVirtual.Registros[17],31),MaquinaVirtual.Registros[17] >> 30 & 1, MaquinaVirtual.Registros[16]);
         } while(MaquinaVirtual.Registros[4] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[3])!= -1); // OPC != STOP
