@@ -21,17 +21,18 @@
 
 1757362094 d:\facultad\arquitectura\mv\vm---2025\tipos.h
 
-1757889942 source:c:\users\54223\documents\arquitectura\vm---2025\main.c
+1757963881 source:c:\users\54223\documents\arquitectura\vm---2025\main.c
 	<stdio.h>
 	<stdlib.h>
 	"acceso_memoria.h"
 	<time.h>
+	<ctype.h>
 
-1757702020 c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.h
+1757960823 c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.h
 	"tipos.h"
 
-1757336426 c:\users\54223\documents\arquitectura\vm---2025\tipos.h
+1757963968 c:\users\54223\documents\arquitectura\vm---2025\tipos.h
 
-1757888782 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
+1757960908 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
 	"acceso_memoria.h"
 
