@@ -116,11 +116,9 @@ int main(int argc, char *argv[]){
 
     leerCabecera(cabecera,argv[1]);
     if (analizoValidez(cabecera)){
-        printf("%X\n",cabecera[7]);
         iniciabilizarTablaSegmentos(&MaquinaVirtual,cabecera);
         inicializoRegistros(&MaquinaVirtual);
         lecturaArchivo(&MaquinaVirtual,argv[1]);
-        printf("%d\n",MaquinaVirtual.tabla_seg[0].tamano);
         do {
             cargaoperacion(&MaquinaVirtual);
 
@@ -145,7 +143,7 @@ void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("TP3Ejercicio10a.vmx","rb");
+    arch = fopen("pruebavector.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -178,7 +176,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("TP3Ejercicio10a.vmx","rb");
+    arch=fopen("pruebavector.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -438,9 +436,8 @@ void sys(VM *MaquinaVirtual){
     int numBytes = MaquinaVirtual->Registros[12] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
     int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
-    printf("%X\n",MaquinaVirtual->Registros[13]);
-    printf("ECX: %X \n", MaquinaVirtual->Registros[12]);
-    modificoLAR_MAR(MaquinaVirtual, MaquinaVirtual->Registros[13]); //Le paso la posicion de memoria EDX para que modifique los registros MAR Y LAR
+    MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[13]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
+    MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
     if (tarea == 1){ //Escribir en memoria
         int i;
         for (i=0;i<numCeldas;i++){
@@ -521,7 +518,7 @@ void sys(VM *MaquinaVirtual){
             int j, base;
             base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
             long int posicion;
-            printf("[%04X] ");
+            printf("[%04X] ", base);
             for (j=0;j<numBytes;j++){
                 posicion=base + i*numBytes + j;
                 unsigned char aux = MaquinaVirtual->Memoria[posicion];

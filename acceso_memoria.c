@@ -4,20 +4,20 @@
 
 int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
-    base = MaquinaVirtual.tabla_seg[registro >> 16].base;
+    base = MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].base;
     offset = registro & 0xFFFF;
-    if((base + offset <= MaquinaVirtual.tabla_seg[registro >> 16].tamano) && (base + offset >= MaquinaVirtual.tabla_seg[registro >> 16].base)) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
+    if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
         valor = base + offset;
     else{
         valor = -1;
-        printf("Se produjo una invasion de memoria. Segmentation Fold");
+        printf("Se produjo una invasion de memoria. Segmentation Fall");
         exit(1);
     }
     return valor;
 }
 
 void modificoLAR_MAR(VM *MaquinaVirtual, int operando){
-    MaquinaVirtual->Registros[LAR] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[operando >> 16 & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
+    MaquinaVirtual->Registros[LAR] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[(shiftRightLogico(operando,16)) & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
     MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[LAR]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
 }
 
