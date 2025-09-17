@@ -13,13 +13,15 @@
 	"acceso_memoria.h"
 	<time.h>
 
-1757935776 source:d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.c
+1757972313 source:d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.c
 	"acceso_memoria.h"
+	<stdio.h>
+	<stdlib.h>
 
-1757686908 d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.h
+1757972313 d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.h
 	"tipos.h"
 
-1757362094 d:\facultad\arquitectura\mv\vm---2025\tipos.h
+1757972313 d:\facultad\arquitectura\mv\vm---2025\tipos.h
 
 1758135391 source:c:\users\54223\documents\arquitectura\vm---2025\main.c
 	<stdio.h>

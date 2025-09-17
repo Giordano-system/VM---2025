@@ -413,13 +413,13 @@ void ldl(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], (A & 0xFFFF) << 16 | (B & 0xFFFF));
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], (A & 0xFFFF0000) | (B & 0xFFFF));
 }
 void ldh(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], (A & 0xFFFF0000) | (B & 0xFFFF));
+    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], (A & 0xFFFF) | ((B & 0xFFFF)) <<16 );
 }
 void rnd(VM *MaquinaVirtual){
     srand((int)time(NULL));
@@ -439,6 +439,7 @@ void sys(VM *MaquinaVirtual){
     numBytes = shiftRightLogico(numBytes,16);
     int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
     printf("%X\n",MaquinaVirtual->Registros[13]);
+    printf("ECX: %X \n", MaquinaVirtual->Registros[12]);
     modificoLAR_MAR(MaquinaVirtual, MaquinaVirtual->Registros[13]); //Le paso la posicion de memoria EDX para que modifique los registros MAR Y LAR
     if (tarea == 1){ //Escribir en memoria
         int i;
@@ -449,7 +450,7 @@ void sys(VM *MaquinaVirtual){
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
             int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
-            printf("[%04X]", base+i*numBytes);
+            printf("[%04X]: ", base+i*numBytes);
             do{
                 switch(eax){
                     case 0x01: {
