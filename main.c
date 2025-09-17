@@ -96,9 +96,9 @@ puntFunc operaciones[0x20] = {
     sub,mul,divv,cmp,shl,shr,sar,and,or,xor,swap,ldl,ldh,rnd
 };
 
-void leerCabecera(char [],char []);
-int analizoValidez(char []);
-void iniciabilizarTablaSegmentos(VM *,char []);
+void leerCabecera(unsigned char [], char []);
+int analizoValidez(unsigned char []);
+void iniciabilizarTablaSegmentos(VM *,unsigned char []);
 void lecturaArchivo(VM *,char []);
 void inicializoRegistros(VM *);
 void cargaoperacion(VM *);
@@ -141,7 +141,7 @@ int main(int argc, char *argv[]){
     return 0;
 }
 
-void leerCabecera(char cabecera[8], char nombre[]){
+void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
@@ -158,7 +158,7 @@ void leerCabecera(char cabecera[8], char nombre[]){
     }
 }
 
-int analizoValidez(char cabecera[]){
+int analizoValidez(unsigned char cabecera[]){
     int i=0;
     char version[6] = {'V', 'M', 'X', '2', '5', 0x01};
     while (i<6 && cabecera[i]==version[i])
@@ -166,9 +166,9 @@ int analizoValidez(char cabecera[]){
     return i==6;
 }
 
-void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, char cabecera[]){
+void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, unsigned char cabecera[]){
     MaquinaVirtual->tabla_seg[0].base=0;
-    MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | (cabecera[7] & 0xFF);
+    MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | cabecera[7];
     MaquinaVirtual->tabla_seg[1].base=MaquinaVirtual->tabla_seg[0].tamano;
     MaquinaVirtual->tabla_seg[1].tamano=16777216-MaquinaVirtual->tabla_seg[0].tamano;
 }
