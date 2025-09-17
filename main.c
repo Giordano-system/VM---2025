@@ -436,7 +436,7 @@ void sys(VM *MaquinaVirtual){
     int numBytes = MaquinaVirtual->Registros[12] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
     int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
-    //AGREGAR MODIFICACION LAR Y MAR
+    modificoLAR_MAR(MaquinaVirtual, MaquinaVirtual->Registros[13]); //Le paso la posicion de memoria EDX para que modifique los registros MAR Y LAR
     if (tarea == 1){ //Escribir en memoria
         int i;
         for (i=0;i<numCeldas;i++){
@@ -445,8 +445,9 @@ void sys(VM *MaquinaVirtual){
             long int valorMax, valorMin;
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
+            int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            printf("[%04X]", base+i*numBytes);
             do{
-                printf("Celda %d: ", i);
                 switch(eax){
                     case 0x01: {
                         if(scanf(" %d",&valor)!=1){
@@ -501,8 +502,7 @@ void sys(VM *MaquinaVirtual){
                 if (!(valido && (valor>=valorMin && valor<=valorMax)))
                     valido = 0;
             }while (!valido);
-            int j, base;
-            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            int j;
             long int posicion;
             for (j=0;j<numBytes;j++){
                 posicion = base + i*numBytes + j;
@@ -517,6 +517,7 @@ void sys(VM *MaquinaVirtual){
             int j, base;
             base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
             long int posicion;
+            print("[%04X] ")
             for (j=0;j<numBytes;j++){
                 posicion=base + i*numBytes + j;
                 unsigned char aux = MaquinaVirtual->Memoria[posicion];
@@ -524,18 +525,18 @@ void sys(VM *MaquinaVirtual){
             }
         int k=0;
         while (k<5){
-            int bit = shiftRightLogico(eax,k);
+            int bit = shiftRightLogico(eax,k) & 1;
             if (bit){
                 switch(k){
-                    case 0: printf("%d \n", valor); break; //Decimal
+                    case 0: printf("%d ", valor); break; //Decimal
                     case 1: {
                         if (isprint((unsigned char)valor))
-                            printf("%c \n", (char)valor);
+                            printf("%c ", (char)valor);
                         else
                             printf(".");
                     } break; //Caracteres
-                    case 2: printf("%o \n", valor); break; //Octal
-                    case 3: printf("%X \n", valor); break; //Hexadecimal
+                    case 2: printf("%o ", valor); break; //Octal
+                    case 3: printf("%X ", valor); break; //Hexadecimal
                     case 4: {
                         int k;
                         for (k = 8*numBytes-1; k>=0; k--){
@@ -543,7 +544,6 @@ void sys(VM *MaquinaVirtual){
                             if (k % 4 == 0 && k != 0)
                                 printf(" ");
                         }
-                        printf("\n");
                     } break;
                     default:{
                         printf("Metodo invalido \n");
@@ -552,6 +552,7 @@ void sys(VM *MaquinaVirtual){
             }
         k++;
         }
+        printf("\n");
         }
     }
 }
