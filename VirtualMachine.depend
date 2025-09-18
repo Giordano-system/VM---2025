@@ -43,3 +43,21 @@
 	<stdio.h>
 	<stdlib.h>
 
+1758220042 source:c:\users\proia\documents\github\vm---2025\acceso_memoria.c
+	"acceso_memoria.h"
+	<stdio.h>
+	<stdlib.h>
+
+1758220042 c:\users\proia\documents\github\vm---2025\acceso_memoria.h
+	"tipos.h"
+
+1758220042 c:\users\proia\documents\github\vm---2025\tipos.h
+
+1758227586 source:c:\users\proia\documents\github\vm---2025\main.c
+	<stdio.h>
+	<stdlib.h>
+	"acceso_memoria.h"
+	<time.h>
+	<ctype.h>
+	<string.h>
+

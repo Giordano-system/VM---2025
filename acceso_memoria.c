@@ -1,19 +1,27 @@
 #include "acceso_memoria.h"
 #include <stdio.h>
 #include <stdlib.h>
+#define CANTSEG 2
 
 int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
-    base = MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].base;
-    offset = registro & 0xFFFF;
-    if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
-        valor = base + offset;
-    else{
+
+    if(shiftRightLogico(registro,16)>=0 && shiftRightLogico(registro,16)<CANTSEG){
+        base = MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].base;
+        offset = registro & 0xFFFF;
+        if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
+            valor = base + offset;
+        else{
+            valor = -1;
+            printf("Segmentation Fall. Se produjo una invasion de memoria.");
+            exit(1);
+        }
+        return valor;
+    }else{
         valor = -1;
-        printf("Se produjo una invasion de memoria. Segmentation Fall");
+        printf("Fallo de Segmento. Código de segmento inexistente.");
         exit(1);
     }
-    return valor;
 }
 
 void modificoLAR_MAR(VM *MaquinaVirtual, int operando){

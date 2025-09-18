@@ -11,6 +11,12 @@
 #define OPC  4
 #define OP1  5
 #define OP2  6
+#define EAX 10
+#define EBX 11
+#define ECX 12
+#define EDX 13
+#define EEX 14
+#define EFX 15
 #define AC   16
 #define CC   17
 #define CS   26
@@ -143,7 +149,7 @@ void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("pruebavector.vmx","rb");
+    arch = fopen("ejercicio11.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -176,7 +182,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("pruebavector.vmx","rb");
+    arch=fopen("ejercicio11.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -432,12 +438,12 @@ void rnd(VM *MaquinaVirtual){
 
 void sys(VM *MaquinaVirtual){
     int tarea = (MaquinaVirtual->Registros[OP1]) & 0x3;
-    int numCeldas = MaquinaVirtual->Registros[12] & 0xFFFF; //Tomo los 2 bytes menos significativos de ecx
-    int numBytes = MaquinaVirtual->Registros[12] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
+    int numCeldas = MaquinaVirtual->Registros[ECX] & 0xFFFF; //Tomo los 2 bytes menos significativos de ecx
+    int numBytes = MaquinaVirtual->Registros[ECX] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
-    int eax = MaquinaVirtual->Registros[10]; //Formato de entrada/salida de los datos
-    MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[13]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
-    MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
+    int eax = MaquinaVirtual->Registros[EAX]; //Formato de entrada/salida de los datos
+    MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[EDX]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
+    MaquinaVirtual->Registros[MAR] = ((numCeldas*numBytes) << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
     if (tarea == 1){ //Escribir en memoria
         int i;
         for (i=0;i<numCeldas;i++){
@@ -446,7 +452,7 @@ void sys(VM *MaquinaVirtual){
             long int valorMax, valorMin;
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
-            int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
             printf("[%04X]: ", base+i*numBytes);
             do{
                 switch(eax){
@@ -516,7 +522,7 @@ void sys(VM *MaquinaVirtual){
         for (i=0;i<numCeldas;i++){
             long int valor=0;
             int j, base;
-            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[13]);
+            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
             long int posicion;
             printf("[%04X] ", base);
             for (j=0;j<numBytes;j++){
