@@ -4,6 +4,13 @@
 #include <time.h>
 #include <ctype.h>
 #include <string.h>
+//Errores
+#define OPE 1
+#define DIV0 2
+#define SEG 3
+#define COD 4
+#define SET 5
+//Registros
 #define LAR  0
 #define MAR  1
 #define MBR  2
@@ -114,6 +121,7 @@ void setGeneral(VM *,int,int);
 void actualizaCC(VM *,int);
 unsigned int shiftRightLogico(int,int);
 void desensamblado(VM *);
+void errores(int);
 
 
 int main(int argc, char *argv[]){
@@ -137,10 +145,8 @@ int main(int argc, char *argv[]){
             // Ejecuta instrucción
             if ((MaquinaVirtual.Registros[OPC]>=0x00 && MaquinaVirtual.Registros[OPC]<=0x08)||(MaquinaVirtual.Registros[OPC]>=15 && MaquinaVirtual.Registros[OPC]<=31)) //Si la funcion no es reconocida aborto proceso.
                 operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
-            else{
-                printf("Instruccion Invalida. Abortando proceso");
-                exit(1);
-            }
+            else
+                errores(OPE);
         } while(MaquinaVirtual.Registros[OPC] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1); // OPC != STOP
     }
     return 0;
@@ -150,7 +156,7 @@ void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("ejercicio11.vmx","rb");
+    arch = fopen("ejercicio13.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -183,7 +189,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("ejercicio11.vmx","rb");
+    arch=fopen("ejercicio13.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -269,8 +275,10 @@ void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
 void setGeneral(VM *MaquinaVirtual, int operando, int valor){
     if(((operando >> 30) & 0x3) == 1)
         MaquinaVirtual->Registros[operando & 0x1F] = valor;
-    else
+    else if(((operando >> 30) & 0x3) == 3)
         setMemoria(MaquinaVirtual,operando,valor);
+    else
+        errores(SET);
 }
 
 void actualizaCC(VM *MaquinaVirtual, int valor){
@@ -292,27 +300,27 @@ void jmp(VM *MaquinaVirtual){
 }
 void jz(VM *MaquinaVirtual){
     if(((MaquinaVirtual->Registros[CC] >> 30) & 1) == 1)
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+        jmp(MaquinaVirtual);
 }
 void jp(VM *MaquinaVirtual){
     if((((MaquinaVirtual->Registros[CC] >> 30) & 1) == 0) && (((MaquinaVirtual->Registros[CC] >> 31) & 1) == 0))
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+        jmp(MaquinaVirtual);
 }
 void jumpn(VM *MaquinaVirtual){
     if(((MaquinaVirtual->Registros[CC] >> 31) & 1) == 1)
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+        jmp(MaquinaVirtual);
 }
 void jnz(VM *MaquinaVirtual){
-    if(MaquinaVirtual->Registros[CC] >> 30 & 1 == 0)
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+    if(((MaquinaVirtual->Registros[CC] >> 30) & 1) == 0)
+        jmp(MaquinaVirtual);
 }
 void jnp(VM *MaquinaVirtual){
     if((((MaquinaVirtual->Registros[CC] >> 30) & 1) == 1) || (((MaquinaVirtual->Registros[CC] >> 31) & 1) == 1))
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+        jmp(MaquinaVirtual);
 }
 void jnn(VM *MaquinaVirtual){
     if(((MaquinaVirtual->Registros[CC] >> 31) & 1) == 0)
-        MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+        jmp(MaquinaVirtual);
 }
 void not(VM *MaquinaVirtual){
     int A;
@@ -354,10 +362,8 @@ void divv(VM *MaquinaVirtual){
         setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A / B);
         actualizaCC(MaquinaVirtual, A / B);
         MaquinaVirtual->Registros[AC] = A % B; //Actualizo el AC con el resto de la division
-    }else{
-        printf("No es posible dividir por cero. Proceso detenido.");
-        exit(1);
-    }
+    }else
+        errores(DIV0);
 }
 void cmp(VM *MaquinaVirtual){
     int A,B;
@@ -624,4 +630,27 @@ void desensamblado(VM *MaquinaVirtual){
 
         MaquinaVirtual->Registros[IP] += inc;
     }while(MaquinaVirtual->Registros[OPC] != 0x0F && logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP])!= -1);
+}
+
+void errores(int error) {
+    switch(error) {
+        case 1:
+            printf("Instruccion Invalida. Abortando proceso");
+            break;
+        case 2:
+            printf("No es posible dividir por cero. Proceso detenido.");
+            break;
+        case 3:
+            printf("Segmentation Fall. Se produjo una invasion de memoria.");
+            break;
+        case 4:
+            printf("Fallo de Segmento. Código de segmento inexistente.");
+            break;
+        case 5:
+            printf("No se le puede asignar un valor a un operando de tipo inmediato.");
+            break;
+        default:
+            printf("Error desconocido.");
+    }
+    exit(1);
 }

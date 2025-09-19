@@ -2,6 +2,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #define CANTSEG 2
+#define SEG 3
+#define COD 4
 
 int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
@@ -11,17 +13,11 @@ int logica_fisica(VM MaquinaVirtual, int registro){
         offset = registro & 0xFFFF;
         if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
             valor = base + offset;
-        else{
-            valor = -1;
-            printf("Segmentation Fall. Se produjo una invasion de memoria.");
-            exit(1);
-        }
+        else
+            errores(SEG);
         return valor;
-    }else{
-        valor = -1;
-        printf("Fallo de Segmento. Código de segmento inexistente.");
-        exit(1);
-    }
+    }else
+        errores(COD);
 }
 
 void modificoLAR_MAR(VM *MaquinaVirtual, int operando){
