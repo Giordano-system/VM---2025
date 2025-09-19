@@ -125,6 +125,9 @@ int main(int argc, char *argv[]){
         iniciabilizarTablaSegmentos(&MaquinaVirtual,cabecera);
         inicializoRegistros(&MaquinaVirtual);
         lecturaArchivo(&MaquinaVirtual,argv[1]);
+        if(argc == 3 && strcmp(argv[2],"-d") == 0)
+            desensamblado(&MaquinaVirtual);
+        MaquinaVirtual.Registros[IP] = MaquinaVirtual.Registros[CS]; // Reinicio IP
         do {
             cargaoperacion(&MaquinaVirtual);
 
@@ -139,8 +142,6 @@ int main(int argc, char *argv[]){
                 exit(1);
             }
         } while(MaquinaVirtual.Registros[OPC] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1); // OPC != STOP
-        if(argc == 3 && strcmp(argv[2],"-d") == 0)
-            desensamblado(&MaquinaVirtual);
     }
     return 0;
 }
@@ -572,7 +573,6 @@ void desensamblado(VM *MaquinaVirtual){
     short int posfisica;
     int i, inc;
 
-    MaquinaVirtual->Registros[IP] = MaquinaVirtual->Registros[CS];
     do {
         cargaoperacion(MaquinaVirtual);
 

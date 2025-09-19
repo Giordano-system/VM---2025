@@ -33,12 +33,12 @@
 	<ctype.h>
 	<string.h>
 
-1757960823 c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.h
+1758138923 c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.h
 	"tipos.h"
 
-1757963968 c:\users\54223\documents\arquitectura\vm---2025\tipos.h
+1758138923 c:\users\54223\documents\arquitectura\vm---2025\tipos.h
 
-1757964301 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
+1758284667 source:c:\users\54223\documents\arquitectura\vm---2025\acceso_memoria.c
 	"acceso_memoria.h"
 	<stdio.h>
 	<stdlib.h>
