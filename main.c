@@ -156,7 +156,7 @@ void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("ejercicio13.vmx","rb");
+    arch = fopen("pruebaSYS2.vmx","rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -189,7 +189,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("ejercicio13.vmx","rb");
+    arch=fopen("pruebaSYS2.vmx","rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -460,8 +460,8 @@ void sys(VM *MaquinaVirtual){
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
             int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
-            printf("[%04X]: ", base+i*numBytes);
             do{
+                printf("[%04X]: ", base+i*numBytes);
                 switch(eax){
                     case 0x01: {
                         if(scanf(" %d",&valor)!=1){
@@ -484,7 +484,7 @@ void sys(VM *MaquinaVirtual){
                         }
                     }break;
                     case 0x08:{ //Hexadecimal
-                        if(scanf("% lx",&valor)!=1){
+                        if(scanf(" %lx",&valor)!=1){
                             printf("Entrada invalida \n");
                             valido = 0; //Fuerzo repetir
                         }
@@ -497,7 +497,6 @@ void sys(VM *MaquinaVirtual){
                             valido=0;
                         }
                         for (k=0;bits[k]!='\0';k++){
-                            printf("K: %d -", k);
                             valor = valor << 1;
                             if (bits[k]=='1')
                                 valor |=1;
@@ -505,7 +504,6 @@ void sys(VM *MaquinaVirtual){
                                 break;
                                 valido = 0;
                             }
-                            printf("Valor al momento: %d \n", valor);
                         }
                     }break;
                     default: {
@@ -547,7 +545,7 @@ void sys(VM *MaquinaVirtual){
                         if (isprint((unsigned char)valor))
                             printf("%c ", (char)valor);
                         else
-                            printf(".");
+                            printf(". ");
                     } break; //Caracteres
                     case 2: printf("%o ", valor); break; //Octal
                     case 3: printf("%X ", valor); break; //Hexadecimal
