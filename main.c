@@ -10,6 +10,8 @@
 #define SEG 3
 #define COD 4
 #define SET 5
+#define SYS 6
+#define SHIFT 7
 //Registros
 #define LAR  0
 #define MAR  1
@@ -156,7 +158,7 @@ void leerCabecera(unsigned char cabecera[8], char nombre[]){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("pruebaSYS2.vmx","rb");
+    arch = fopen(nombre,"rb");
     if (arch){
         for (i=0;i<8;i++){
             fread(&byte,1,1,arch);
@@ -181,7 +183,7 @@ void iniciabilizarTablaSegmentos(VM *MaquinaVirtual, unsigned char cabecera[]){
     MaquinaVirtual->tabla_seg[0].base=0;
     MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | cabecera[7];
     MaquinaVirtual->tabla_seg[1].base=MaquinaVirtual->tabla_seg[0].tamano;
-    MaquinaVirtual->tabla_seg[1].tamano=16777216-MaquinaVirtual->tabla_seg[0].tamano;
+    MaquinaVirtual->tabla_seg[1].tamano=16384-MaquinaVirtual->tabla_seg[0].tamano;
 }
 
 void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
@@ -189,7 +191,7 @@ void lecturaArchivo(VM *MaquinaVirtual, char nombre[]){
     unsigned char byte;
     int i;
 
-    arch=fopen("pruebaSYS2.vmx","rb");
+    arch=fopen(nombre,"rb");
     if (arch){
 
         for(i=0;i<8;i++)
@@ -238,7 +240,7 @@ void cargaoperacion(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[OP1] <<= 30; // OP1
     MaquinaVirtual->Registros[OP2] <<= 30; // OP2
 
-    // Lectura operandos 2 y 1 (probar modularizar)
+    // Lectura operandos 2 y 1
     n1 = shiftRightLogico(MaquinaVirtual->Registros[OP2], 30);
     aux = 0;
     for(i=0; i<n1; i++){
@@ -375,22 +377,31 @@ void shl(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A << B);
-    actualizaCC(MaquinaVirtual, A << B);
+    if(B>=0){
+       setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A << B);
+       actualizaCC(MaquinaVirtual, A << B);
+    } else
+        errores(SHIFT);
 }
 void shr(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], shiftRightLogico(A,B));
-    actualizaCC(MaquinaVirtual, shiftRightLogico(A,B));
+    if(B>=0){
+       setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], shiftRightLogico(A,B));
+       actualizaCC(MaquinaVirtual, shiftRightLogico(A,B));
+    } else
+        errores(SHIFT);
 }
 void sar(VM *MaquinaVirtual){
     int A,B;
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
-    setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A >> B);
-    actualizaCC(MaquinaVirtual, A >> B);
+    if(B>=0){
+       setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A >> B);
+       actualizaCC(MaquinaVirtual, A >> B);
+    } else
+        errores(SHIFT);
 }
 void and(VM *MaquinaVirtual){
     int A,B;
@@ -522,7 +533,7 @@ void sys(VM *MaquinaVirtual){
             }
 
         }
-    }else{ //Leer de memoria
+    }else if(tarea==2){ //Leer de memoria
         int i;
         for (i=0;i<numCeldas;i++){
             long int valor=0;
@@ -566,7 +577,8 @@ void sys(VM *MaquinaVirtual){
         }
         printf("\n");
         }
-    }
+    }else
+        errores(SYS);
 }
 
 void stop(VM *MaquinaVirtual){
@@ -633,7 +645,7 @@ void desensamblado(VM *MaquinaVirtual){
 void errores(int error) {
     switch(error) {
         case 1:
-            printf("Instruccion Invalida. Abortando proceso");
+            printf("Instruccion Invalida. Abortando proceso.");
             break;
         case 2:
             printf("No es posible dividir por cero. Proceso detenido.");
@@ -646,6 +658,12 @@ void errores(int error) {
             break;
         case 5:
             printf("No se le puede asignar un valor a un operando de tipo inmediato.");
+            break;
+        case 6:
+            printf("Llamada al sistema erronea. Abortando proceso.");
+            break;
+        case 7:
+            printf("No se permite shiftear una cantidad negativa de bits. Abortando proceso.");
             break;
         default:
             printf("Error desconocido.");

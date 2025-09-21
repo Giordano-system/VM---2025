@@ -1,9 +1,6 @@
 #include "acceso_memoria.h"
 #include <stdio.h>
 #include <stdlib.h>
-#define CANTSEG 2
-#define SEG 3
-#define COD 4
 
 int logica_fisica(VM MaquinaVirtual, int registro){
     int base,offset, valor;
@@ -30,8 +27,7 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
     modificoLAR_MAR(MaquinaVirtual, operando);
     pos = MaquinaVirtual->Registros[MAR] & 0xFFFF; // pos tiene la direccion fisica para acceder a memoria
     *valor = MaquinaVirtual->Memoria[pos];
-    *valor = *valor << 24; //Los primeros 8 bits que leo son los mas significativos, entonces los corro (ver posibilidad de GENERALIZAR)
-    // El tope deberia ser MAR >> 16, aca se asume que es siempre 4 (habria que generalizar)
+    *valor = *valor << 24; //Los primeros 8 bits que leo son los mas significativos, entonces los corro
     for (i=0;i<3;i++){
         pos+=1;
         aux = MaquinaVirtual->Memoria[pos];
