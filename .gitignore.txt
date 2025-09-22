@@ -1,6 +1,5 @@
 # Archivos compilados
 *.o
-*.exe
 *.out
 
 # Carpetas de compilación (Visual Studio, GCC, etc.)
