@@ -76,7 +76,7 @@ const char *registros[32] = {
     "EBX",
     "ECX",
     "EDX",
-    "EFX",
+    "EEX",
     "EFX",
     "AC",
     "CC",
@@ -550,15 +550,23 @@ void sys(VM *MaquinaVirtual){
                 unsigned char aux = MaquinaVirtual->Memoria[posicion];
                 valor = (valor << 8) | aux;
             }
-        int k=0;
-        while (k<5){
+        int k=4;
+        while (k>-1){
             int bit = shiftRightLogico(eax,k) & 1;
             if (bit){
                 switch(k){
                     case 0: printf("%d ", valor); break; //Decimal
                     case 1: {
-                        if (isprint((unsigned char)valor))
-                            printf("%c ", (char)valor);
+                        int caracter,bandera=0;
+                        for (caracter=0;caracter<numBytes;caracter++){
+                            char aux = shiftRightLogico(valor,8*(numBytes-1-caracter));
+                            if (isprint((unsigned char)aux)){
+                            printf("%c", (char)aux);
+                            bandera=1;
+                            }
+                        }
+                        if (bandera)
+                            printf(" ");
                         else
                             printf(". ");
                     } break; //Caracteres
@@ -577,7 +585,7 @@ void sys(VM *MaquinaVirtual){
                     }
                 }
             }
-        k++;
+        k--;
         }
         printf("\n");
         }
