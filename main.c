@@ -463,14 +463,16 @@ void sys(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[EDX]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
     MaquinaVirtual->Registros[MAR] = ((numCeldas*numBytes) << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
     if (tarea == 1){ //Escribir en memoria
-        int i;
+        int i, celda, base;
+        base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
+        celda = base;
         for (i=0;i<numCeldas;i++){
             int valido=1;
             long int valor=0;
             long int valorMax, valorMin;
             valorMin = -(1 << (8*numBytes - 1));
             valorMax = (1 << (8*numBytes - 1)) - 1;
-            int base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
+            celda += numBytes;
             do{
                 printf("[%04X]: ", base+i*numBytes);
                 switch(eax){
@@ -534,13 +536,15 @@ void sys(VM *MaquinaVirtual){
 
         }
     }else if(tarea==2){ //Leer de memoria
-        int i;
+        int i, celda, base;
+        base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
+        celda = base;
         for (i=0;i<numCeldas;i++){
             long int valor=0;
-            int j, base;
-            base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
+            int j;
             long int posicion;
-            printf("[%04X] ", base);
+            printf("[%04X] ", celda);
+            celda += numBytes;
             for (j=0;j<numBytes;j++){
                 posicion=base + i*numBytes + j;
                 unsigned char aux = MaquinaVirtual->Memoria[posicion];
