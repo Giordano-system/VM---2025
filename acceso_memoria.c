@@ -10,6 +10,8 @@ int logica_fisica(VM MaquinaVirtual, int registro){
         offset = registro & 0xFFFF;
         if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
             valor = base + offset;
+        else if(registro == MaquinaVirtual.Registros[3])
+            valor = -1;
         else
             errores(SEG);
         return valor;

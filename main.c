@@ -142,14 +142,14 @@ int main(int argc, char *argv[]){
             cargaoperacion(&MaquinaVirtual);
 
             // Mover IP
-            MaquinaVirtual.Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual.Registros[OP1], 30) + shiftRightLogico(MaquinaVirtual.Registros[OP2], 30);
+            MaquinaVirtual.Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual.Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual.Registros[OP2], 24);
 
             // Ejecuta instrucción
             if ((MaquinaVirtual.Registros[OPC]>=0x00 && MaquinaVirtual.Registros[OPC]<=0x08)||(MaquinaVirtual.Registros[OPC]>=15 && MaquinaVirtual.Registros[OPC]<=31)) //Si la funcion no es reconocida aborto proceso.
                 operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
             else
                 errores(OPE);
-        } while(MaquinaVirtual.Registros[OPC] != 0x0F && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1); // OPC != STOP
+        } while(MaquinaVirtual.Registros[IP] != -1 && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1);
     }
     return 0;
 }
@@ -229,7 +229,7 @@ void cargaoperacion(VM *MaquinaVirtual){
     // Actualizo OPC
     MaquinaVirtual->Registros[OPC] = byte & 0x1F;
 
-    // Actualizo primeros 2 bits de OP1 y OP2
+    // Actualizo el primer byte de OP1 y OP2
     if(((byte >> 4) & 1) == 0 && ((byte >> 5) & 1) == 0){
         MaquinaVirtual->Registros[OP1] = shiftRightLogico(byte,6); // OP1
         MaquinaVirtual->Registros[OP2] = 0; // OP2
@@ -237,11 +237,11 @@ void cargaoperacion(VM *MaquinaVirtual){
         MaquinaVirtual->Registros[OP1] = byte >> 4 & 0x03; // OP1
         MaquinaVirtual->Registros[OP2] = shiftRightLogico(byte,6); // OP2
     }
-    MaquinaVirtual->Registros[OP1] <<= 30; // OP1
-    MaquinaVirtual->Registros[OP2] <<= 30; // OP2
+    MaquinaVirtual->Registros[OP1] <<= 24; // OP1
+    MaquinaVirtual->Registros[OP2] <<= 24; // OP2
 
     // Lectura operandos 2 y 1
-    n1 = shiftRightLogico(MaquinaVirtual->Registros[OP2], 30);
+    n1 = shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
     aux = 0;
     for(i=0; i<n1; i++){
         pos++;
@@ -250,7 +250,7 @@ void cargaoperacion(VM *MaquinaVirtual){
     }
     MaquinaVirtual->Registros[OP2] |= aux;
 
-    n2 = shiftRightLogico(MaquinaVirtual->Registros[OP1], 30);
+    n2 = shiftRightLogico(MaquinaVirtual->Registros[OP1], 24);
     aux = 0;
     for(i=0; i<n2; i++){
         pos++;
@@ -261,7 +261,7 @@ void cargaoperacion(VM *MaquinaVirtual){
 }
 
 void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
-    switch((operando >> 30) & 0x3) {
+    switch((operando >> 24) & 0x3) {
         case 1:
             *valor = MaquinaVirtual->Registros[operando & 0x1F];
             break;
@@ -275,9 +275,9 @@ void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
 }
 
 void setGeneral(VM *MaquinaVirtual, int operando, int valor){
-    if(((operando >> 30) & 0x3) == 1)
+    if(((operando >> 24) & 0x3) == 1)
         MaquinaVirtual->Registros[operando & 0x1F] = valor;
-    else if(((operando >> 30) & 0x3) == 3)
+    else if(((operando >> 24) & 0x3) == 3)
         setMemoria(MaquinaVirtual,operando,valor);
     else
         errores(SET);
@@ -361,9 +361,15 @@ void divv(VM *MaquinaVirtual){
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
     if (B!=0){
-        setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A / B);
-        actualizaCC(MaquinaVirtual, A / B);
-        MaquinaVirtual->Registros[AC] = A % B; //Actualizo el AC con el resto de la division
+        int q = A / B;
+        int r = A % B;
+        if (r != 0 && ((r > 0) != (B > 0))) {
+            q--;
+            r += B;
+        }
+        setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], q);
+        actualizaCC(MaquinaVirtual, q);
+        MaquinaVirtual->Registros[AC] = r; //Actualizo el AC con el resto de la division
     }else
         errores(DIV0);
 }
@@ -561,8 +567,8 @@ void sys(VM *MaquinaVirtual){
                         for (caracter=0;caracter<numBytes;caracter++){
                             char aux = shiftRightLogico(valor,8*(numBytes-1-caracter));
                             if (isprint((unsigned char)aux)){
-                            printf("%c", (char)aux);
-                            bandera=1;
+                                printf("%c", (char)aux);
+                                bandera=1;
                             }
                         }
                         if (bandera)
@@ -607,7 +613,7 @@ void desensamblado(VM *MaquinaVirtual){
         posfisica = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP]);
         printf("[%04X] ", posfisica);
 
-        inc = 1 + shiftRightLogico(MaquinaVirtual->Registros[OP1], 30) + shiftRightLogico(MaquinaVirtual->Registros[OP2], 30);
+        inc = 1 + shiftRightLogico(MaquinaVirtual->Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
         for(i=posfisica; i<posfisica + inc; i++)
             printf("%02X ",MaquinaVirtual->Memoria[i]);
 
@@ -616,7 +622,7 @@ void desensamblado(VM *MaquinaVirtual){
 
         printf(" |  %s ",Mnemonicos[MaquinaVirtual->Registros[OPC]]);
 
-        switch((MaquinaVirtual->Registros[OP1] >> 30) & 0x3) {
+        switch((MaquinaVirtual->Registros[OP1] >> 24) & 0x3) {
             case 1:
                 printf("%s",registros[MaquinaVirtual->Registros[OP1] & 0x1F]);
                 break;
@@ -631,10 +637,10 @@ void desensamblado(VM *MaquinaVirtual){
                 break;
         }
 
-        if(((MaquinaVirtual->Registros[OP2] >> 30) & 0x3) != 0)
+        if(((MaquinaVirtual->Registros[OP2] >> 24) & 0x3) != 0)
             printf(", ");
 
-        switch((MaquinaVirtual->Registros[OP2] >> 30) & 0x3) {
+        switch((MaquinaVirtual->Registros[OP2] >> 24) & 0x3) {
             case 1:
                 printf("%s",registros[MaquinaVirtual->Registros[OP2] & 0x1F]);
                 break;
@@ -651,7 +657,7 @@ void desensamblado(VM *MaquinaVirtual){
         printf("\n");
 
         MaquinaVirtual->Registros[IP] += inc;
-    }while(MaquinaVirtual->Registros[OPC] != 0x0F && logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP])!= -1);
+    }while(logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP]) != -1);
 }
 
 void errores(int error) {
