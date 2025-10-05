@@ -96,6 +96,10 @@ const char *registros[32] = {
     "-"
 };
 
+const char* registros16[] = {"AX",  "BX",  "CX",  "DX", "EX", "FX"};
+const char* registros8h[] = {"AH",  "BH",  "CH",  "DH", "EH", "FH"};
+const char* registros8l[] = {"AL",  "BL",  "CL",  "DL", "EL", "FL"};
+
 typedef void (*puntFunc)(VM *);
 
 // Declaración de las funciones de operacion
@@ -605,12 +609,86 @@ void stop(VM *MaquinaVirtual){
 
 void desensamblado(VM *MaquinaVirtual){
     short int posfisica;
-    int i, inc;
+    int i, inc, n;
+    char cadena[200];
+    char byte;
+    int aux, n1, n2, pos, registro;
 
+    if(MaquinaVirtual->Registros[KS] != -1) {
+        puntero = MaquinaVirtual->Registros[KS];
+
+        while((puntero & 0xFFFF) < MaquinaVirtual.tabla_seg[shiftRightLogico(puntero,16)].tamano) {
+            posfisica = logica_fisica(*MaquinaVirtual, puntero);
+            printf(" [%04X] ", posfisica);
+
+            i=0;
+            while(MaquinaVirtual.Memoria[posfisica] != 0) {
+                cadena[i] = MaquinaVirtual.Memoria[posfisica];
+                i++;
+                posfisica++;
+                puntero++;
+            }
+            cadena[i+1] = 0;
+
+            n=i+1;
+            i=0;
+            while(i<n && i<6)
+                printf("%02X ",cadena[i]);
+
+            if(n==7)
+                printf("00 ");
+            else if(n>7)
+                printf(".. ");
+            else
+                for(i=n; i<7;i++)
+                    printf("   ");
+
+            printf(" |  \"%s\"\n", cadena); // Probar que hace si hay caracteres no imprimibles
+        }
+    }
+    puntero = MaquinaVirtual->Registros[CS];
     do {
-        cargaoperacion(MaquinaVirtual);
+        // CARGA LA OPERACION
+        pos = logica_fisica(*MaquinaVirtual, puntero);
+        byte = MaquinaVirtual->Memoria[pos];
 
-        posfisica = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP]);
+        MaquinaVirtual->Registros[OPC] = byte & 0x1F;
+
+        if(((byte >> 4) & 1) == 0 && ((byte >> 5) & 1) == 0){
+            MaquinaVirtual->Registros[OP1] = shiftRightLogico(byte,6);
+            MaquinaVirtual->Registros[OP2] = 0;
+        } else {
+            MaquinaVirtual->Registros[OP1] = byte >> 4 & 0x03;
+            MaquinaVirtual->Registros[OP2] = shiftRightLogico(byte,6);
+        }
+        MaquinaVirtual->Registros[OP1] <<= 24;
+        MaquinaVirtual->Registros[OP2] <<= 24;
+
+        n1 = shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
+        aux = 0;
+        for(i=0; i<n1; i++){
+            pos++;
+            byte = MaquinaVirtual->Memoria[pos];
+            aux = aux | (byte & 0xFF) << (8 * (n1-i-1));
+        }
+        MaquinaVirtual->Registros[OP2] |= aux;
+
+        n2 = shiftRightLogico(MaquinaVirtual->Registros[OP1], 24);
+        aux = 0;
+        for(i=0; i<n2; i++){
+            pos++;
+            byte = MaquinaVirtual->Memoria[pos];
+            aux = aux | (byte & 0xFF) << (8 * (n2-i-1));
+        }
+        MaquinaVirtual->Registros[OP1] |= aux;
+        // TERMINA CARGA DE OPERACION
+
+        if(puntero == MaquinaVirtual->Registros[IP])
+            printf(">");
+        else
+            printf(" ");
+
+        posfisica = logica_fisica(*MaquinaVirtual, puntero);
         printf("[%04X] ", posfisica);
 
         inc = 1 + shiftRightLogico(MaquinaVirtual->Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
@@ -622,42 +700,108 @@ void desensamblado(VM *MaquinaVirtual){
 
         printf(" |  %s ",Mnemonicos[MaquinaVirtual->Registros[OPC]]);
 
+        if(((MaquinaVirtual->Registros[OP1] >> 24) & 0x3)==1 || ((MaquinaVirtual->Registros[OP1] >> 24) & 0x3)==3) {
+            if(((MaquinaVirtual->Registros[OP1] >> 24) & 0x3)==3){
+                aux = MaquinaVirtual->Registros[OP1] >> 16;
+                switch((MaquinaVirtual->Registros[OP1] >> 22) & 0x3) {
+                    case 2:
+                        byte = 'w';
+                        break;
+                    case 3:
+                        byte = 'b';
+                        break;
+                    case 0:
+                        byte = 'l';
+                        break;
+                }
+            }
+            else
+                aux = MaquinaVirtual->Registros[OP1];
+
+            switch((MaquinaVirtual->Registros[OP1] >> 6) & 0x3) {
+                case 0:
+                    strcpy(registro, registros[aux & 0x1F]);
+                    break;
+                case 1:
+                    strcpy(registro, registros8l[(aux & 0x1F) - 10]);
+                    break;
+                case 2:
+                    strcpy(registro, registros8h[(aux & 0x1F) - 10]);
+                    break;
+                case 3:
+                    strcpy(registro, registros16[(aux & 0x1F) - 10]);
+                    break;
+            }
+        }
         switch((MaquinaVirtual->Registros[OP1] >> 24) & 0x3) {
             case 1:
-                printf("%s",registros[MaquinaVirtual->Registros[OP1] & 0x1F]);
+                printf("%s",registro);
                 break;
             case 2:
                 printf("%d",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
                 break;
             case 3:
                 if((MaquinaVirtual->Registros[OP1] & 0xFFFF) == 0)
-                    printf("[%s]",registros[(MaquinaVirtual->Registros[OP1] >> 16) & 0x1F]);
+                    printf("%c[%s]",byte,registro);
                 else
-                    printf("[%s + %d]",registros[(MaquinaVirtual->Registros[OP1] >> 16) & 0x1F],MaquinaVirtual->Registros[OP1] & 0xFFFF);
+                    printf("%c[%s + %d]",byte,registro,MaquinaVirtual->Registros[OP1] & 0xFFFF);
                 break;
         }
 
         if(((MaquinaVirtual->Registros[OP2] >> 24) & 0x3) != 0)
             printf(", ");
 
+        if(((MaquinaVirtual->Registros[OP2] >> 24) & 0x3)==1 || ((MaquinaVirtual->Registros[OP2] >> 24) & 0x3)==3) {
+            if(((MaquinaVirtual->Registros[OP2] >> 24) & 0x3)==3){
+                aux = MaquinaVirtual->Registros[OP2] >> 16;
+                switch((MaquinaVirtual->Registros[OP2] >> 22) & 0x3) {
+                    case 2:
+                        byte = 'w';
+                        break;
+                    case 3:
+                        byte = 'b';
+                        break;
+                    case 0:
+                        byte = 'l';
+                        break;
+                }
+            }
+            else
+                aux = MaquinaVirtual->Registros[OP2];
+
+            switch((MaquinaVirtual->Registros[OP2] >> 6) & 0x3) {
+                case 0:
+                    strcpy(registro, registros[aux & 0x1F]);
+                    break;
+                case 1:
+                    strcpy(registro, registros8l[(aux & 0x1F) - 10]);
+                    break;
+                case 2:
+                    strcpy(registro, registros8h[(aux & 0x1F) - 10]);
+                    break;
+                case 3:
+                    strcpy(registro, registros16[(aux & 0x1F) - 10]);
+                    break;
+            }
+        }
         switch((MaquinaVirtual->Registros[OP2] >> 24) & 0x3) {
             case 1:
-                printf("%s",registros[MaquinaVirtual->Registros[OP2] & 0x1F]);
+                printf("%s",registro);
                 break;
             case 2:
                 printf("%d ",(MaquinaVirtual->Registros[OP2] & 0xFFFF) << 16 >> 16);
                 break;
             case 3:
                 if((MaquinaVirtual->Registros[OP2] & 0xFFFF) == 0)
-                    printf("[%s]",registros[(MaquinaVirtual->Registros[OP2] >> 16) & 0x1F]);
+                    printf("%c[%s]",byte,registro);
                 else
-                    printf("[%s + %d]",registros[(MaquinaVirtual->Registros[OP2] >> 16) & 0x1F],MaquinaVirtual->Registros[OP2] & 0xFFFF);
+                    printf("%c[%s + %d]",byte,registro,MaquinaVirtual->Registros[OP2] & 0xFFFF);
                 break;
         }
         printf("\n");
 
-        MaquinaVirtual->Registros[IP] += inc;
-    }while(logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[IP]) != -1);
+        puntero += inc;
+    }while((puntero & 0xFFFF) < MaquinaVirtual.tabla_seg[shiftRightLogico(puntero,16)].tamano);
 }
 
 void errores(int error) {
