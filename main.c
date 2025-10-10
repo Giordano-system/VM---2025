@@ -461,14 +461,15 @@ void rnd(VM *MaquinaVirtual){
 }
 
 void sys(VM *MaquinaVirtual){
-    int tarea = (MaquinaVirtual->Registros[OP1]) & 0x3;
+    //CALCULAR LIMITES INICIO DS Y FINAL DS
+    int tarea = (MaquinaVirtual->Registros[OP1]) & 0xF;
     int numCeldas = MaquinaVirtual->Registros[ECX] & 0xFFFF; //Tomo los 2 bytes menos significativos de ecx
     int numBytes = MaquinaVirtual->Registros[ECX] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
     int eax = MaquinaVirtual->Registros[EAX]; //Formato de entrada/salida de los datos
     MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[EDX]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
     MaquinaVirtual->Registros[MAR] = ((numCeldas*numBytes) << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
-    if (tarea == 1){ //Escribir en memoria
+    if (tarea == 1){ //Escribir en memoria //VERIFICAR LIMITES
         int i, celda, base;
         base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
         celda = base;
@@ -541,7 +542,7 @@ void sys(VM *MaquinaVirtual){
             }
 
         }
-    }else if(tarea==2){ //Leer de memoria
+    }else if(tarea==2){ //Leer de memoria VERIFICAR LIMITES
         int i, celda, base;
         base = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[EDX]);
         celda = base;
@@ -563,18 +564,15 @@ void sys(VM *MaquinaVirtual){
                 switch(k){
                     case 0: printf("%d ", valor); break; //Decimal
                     case 1: {
-                        int caracter,bandera=0;
+                        int caracter;
                         for (caracter=0;caracter<numBytes;caracter++){
                             char aux = shiftRightLogico(valor,8*(numBytes-1-caracter));
                             if (isprint((unsigned char)aux)){
                                 printf("%c", (char)aux);
-                                bandera=1;
+                            } else {
+                                printf(".");
                             }
                         }
-                        if (bandera)
-                            printf(" ");
-                        else
-                            printf(". ");
                     } break; //Caracteres
                     case 2: printf("%o ", valor); break; //Octal
                     case 3: printf("%X ", valor); break; //Hexadecimal
@@ -595,8 +593,47 @@ void sys(VM *MaquinaVirtual){
         }
         printf("\n");
         }
-    }else
-        errores(SYS);
+    }else if (tarea == 3){
+        int i, base, posicion;
+        int caracteres = MaquinaVirtual->Registros[ECX];
+        char car;
+        base = MaquinaVirtual->Registros[EDX];
+        char *cadena[];
+        scanf("%s",&cadena);
+        i=0;
+        car = cadena[i];
+        while (i<caracteres && car!='\0'){
+            base +=i;
+            posicion = logica_fisica(*MaquinaVirtual, base);
+            MaquinaVirtual->Memoria[posicion] = car;
+            i++;
+        }
+        base +=1;
+        posicion = logica_fisica(*MaquinaVirtual, base);
+        MaquinaVirtual->Memoria[posicion] = '\0';
+
+    } else if(tarea == 4){
+        int i, base, posicion;
+        char car;
+        base = MaquinaVirtual->Registros[EDX];
+        posicion = logica_fisica(*MaquinaVirtual, base);
+        car = MaquinaVirtual->Memoria[posicion];
+        printf("[%04X] ", base);
+        while (car!='\0'){
+            printf("%c", car);
+            base +=1;
+            posicion = logica_fisica(*MaquinaVirtual, base);
+            car = MaquinaVirtual->Memoria[posicion];
+        }
+        printf("\n");
+    } else if (tarea == 7){
+        system("cls");
+    } else if (tarea == 15){ //Breakpoint
+
+    } else {
+        printf("Llamada desconocida. \n");
+        exit(1);
+    }
 }
 
 void stop(VM *MaquinaVirtual){
