@@ -1104,6 +1104,11 @@ void errores(int error) {
         case 8:
             printf("Falta de memoria.");
             break;
+        case 9:
+            printf("Stack Overflow");
+            break;
+        case 10:
+            printf("Stack Underflow");
         default:
             printf("Error desconocido.");
     }
