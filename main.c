@@ -393,7 +393,11 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
               fread(&byte,1,1,arch);
 
         fread(&byte,1,1,arch);
-        i=0;
+
+        if(MaquinaVirtual->Registros[KS] != -1)
+            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[KS]);
+        else
+            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
         while(!feof(arch)){
             MaquinaVirtual->Memoria[i]=byte;
             i++;
@@ -1105,10 +1109,10 @@ void errores(int error) {
             printf("Falta de memoria.");
             break;
         case 9:
-            printf("Stack Overflow");
+            printf("Stack Overflow.");
             break;
         case 10:
-            printf("Stack Underflow");
+            printf("Stack Underflow.");
         default:
             printf("Error desconocido.");
     }
