@@ -393,17 +393,22 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
               fread(&byte,1,1,arch);
 
         fread(&byte,1,1,arch);
-
-        if(MaquinaVirtual->Registros[KS] != -1)
-            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[KS]);
-        else
-            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
-        while(!feof(arch)){
+        i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
+        while((i - MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS].base) < MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS].tamano){
             MaquinaVirtual->Memoria[i]=byte;
             i++;
             fread(&byte,1,1,arch);
         }
 
+        if(!feof(arch)){
+            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
+            fread(&byte,1,1,arch);
+            while(!feof(arch)){
+                MaquinaVirtual->Memoria[i]=byte;
+                i++;
+                fread(&byte,1,1,arch);
+            }
+        }
         fclose(arch);
     }
     else{

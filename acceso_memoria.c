@@ -20,7 +20,7 @@ int logica_fisica(VM MaquinaVirtual, int registro){
 }
 
 void modificoLAR_MAR(VM *MaquinaVirtual, int operando){
-    int NumBytes = 4 - shiftRightLogico(operando,22) & 0x3;
+    int numBytes = 4 - shiftRightLogico(operando,22) & 0x3;
     MaquinaVirtual->Registros[LAR] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[(shiftRightLogico(operando,16)) & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
     MaquinaVirtual->Registros[MAR] = (numBytes << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[LAR]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
 }
@@ -30,7 +30,7 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
     long int pos,base;
     tamCelda = 4 - shiftRightLogico(operando,22) & 0x3;
     modificoLAR_MAR(MaquinaVirtual, operando);
-    base = operando
+    base = operando;
     pos = logica_fisica(*MaquinaVirtual,base);
     *valor=0;
     for (i=0;i<tamCelda;i++){
@@ -44,8 +44,8 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
 }
 
 void setMemoria(VM *MaquinaVirtual, int operando, int valor){
-    int i, tamCelda;
-    long int pos, base,
+    int i, numCeldas;
+    long int pos, base;
     modificoLAR_MAR(MaquinaVirtual, operando);
     numCeldas = 4 - shiftRightLogico(operando,22) & 0x3;
     base = operando;
