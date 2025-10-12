@@ -2,7 +2,7 @@
 #define LAR  0
 #define MAR  1
 #define MBR  2
-#define CANTSEG 2
+#define CANTSEG 6
 #define SEG 3
 #define COD 4
 

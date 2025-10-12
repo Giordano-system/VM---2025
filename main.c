@@ -173,7 +173,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
+    //if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
         agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
         leerCabecera(cabecera, MaquinaVirtual);
         if (analizoValidez(cabecera)){
@@ -181,10 +181,10 @@ int main(int argc, char *argv[]){
             lecturaArchivo(&MaquinaVirtual, cabecera[5]);
         } else
             exit(1);
-    } else // Lectura VMI
-        lecturaArchivoVMI(&MaquinaVirtual);
+    //} else // Lectura VMI
+    //    lecturaArchivoVMI(&MaquinaVirtual);
 
-    if(debug)
+    if(debug){}
         //desensamblado(&MaquinaVirtual);
 
     inicializaPila(&MaquinaVirtual,cantParametros,puntero);
@@ -195,7 +195,7 @@ int main(int argc, char *argv[]){
         MaquinaVirtual.Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual.Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual.Registros[OP2], 24);
 
         // Ejecuta instrucción
-        if ((MaquinaVirtual.Registros[OPC]>=0x00 && MaquinaVirtual.Registros[OPC]<=0x08)||(MaquinaVirtual.Registros[OPC]>=15 && MaquinaVirtual.Registros[OPC]<=31)) //Si la funcion no es reconocida aborto proceso.
+        if ((MaquinaVirtual.Registros[OPC]>=0x00 && MaquinaVirtual.Registros[OPC]<=0x08)||(MaquinaVirtual.Registros[OPC]>=11 && MaquinaVirtual.Registros[OPC]<=31)) //Si la funcion no es reconocida aborto proceso.
             operaciones[MaquinaVirtual.Registros[4]](&MaquinaVirtual);
         else
             errores(OPE);
@@ -236,7 +236,7 @@ void leerCabecera(unsigned char cabecera[8], VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen(MaquinaVirtual.nombreVMX,"rb");
+    arch = fopen("TP5Ejercicio3b.vmx","rb");
     if (arch){
         for (i=0; i<6; i++){
             fread(&byte,1,1,arch);
@@ -264,7 +264,7 @@ int analizoValidez(unsigned char cabecera[]){
     char version[5] = {'V', 'M', 'X', '2', '5'};
     while (i<5 && cabecera[i]==version[i])
         i++;
-    return i+1==6 && (cabecera[i+1]==1 || cabecera[i+1]==2);
+    return i+1==6 && (cabecera[i]==0x1 || cabecera[i]==0x2);
 }
 
 void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cabecera[]){
@@ -382,7 +382,7 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
     unsigned char byte;
     int i;
 
-    arch=fopen(MaquinaVirtual->nombreVMX,"rb");
+    arch=fopen("TP5Ejercicio3b.vmx","rb");
     if (arch){
 
         if(version==1)
@@ -394,7 +394,7 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
 
         fread(&byte,1,1,arch);
         i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
-        while((i - MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS].base) < MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS].tamano){
+        while((i - MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS]].base) < MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS]].tamano){
             MaquinaVirtual->Memoria[i]=byte;
             i++;
             fread(&byte,1,1,arch);
@@ -521,7 +521,7 @@ void creaArchivoVMI(VM MaquinaVirtual){
 }
 
 void cargaoperacion(VM *MaquinaVirtual){
-    char byte;
+    unsigned char byte;
     int aux, i, n1, n2, pos;
 
     // Guardo la dimension fisica de IP en pos y guardo el valor de memoria de esa posición
@@ -799,7 +799,7 @@ void push(VM *MaquinaVirtual){
 
 void pop(VM *MaquinaVirtual){
     int i, A, pos;
-    if(MaquinaVirtual->Registros[SP] + 4 < MaquinaVirtual->Registros[SS] + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SS]].tamano)
+    if(MaquinaVirtual->Registros[SP] + 4 >= MaquinaVirtual->Registros[SS] + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SS] >> 16].tamano)
         errores(SU);
     else {
         pos = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[SP]);
@@ -830,7 +830,7 @@ void call(VM *MaquinaVirtual){
 
 void ret(VM *MaquinaVirtual){
     int i, A, pos;
-    if(MaquinaVirtual->Registros[SP] + 4 < MaquinaVirtual->Registros[SS] + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SS]].tamano)
+    if(MaquinaVirtual->Registros[SP] + 4 >= MaquinaVirtual->Registros[SS] + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SS] >> 16].tamano)
         errores(SU);
     else {
         pos = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[SP]);
@@ -985,7 +985,7 @@ void sys(VM *MaquinaVirtual){
         int caracteres = MaquinaVirtual->Registros[ECX];
         char car;
         base = MaquinaVirtual->Registros[EDX];
-        char *cadena[1024];
+        char cadena[1024];
         scanf("%s",&cadena);
         i=0;
         car = cadena[i];
@@ -1099,7 +1099,7 @@ void errores(int error) {
             printf("Segmentation Fall. Se produjo una invasion de memoria.");
             break;
         case 4:
-            printf("Fallo de Segmento. Código de segmento inexistente.");
+            printf("Fallo de Segmento. Codigo de segmento inexistente.");
             break;
         case 5:
             printf("No se le puede asignar un valor a un operando de tipo inmediato.");
@@ -1118,6 +1118,7 @@ void errores(int error) {
             break;
         case 10:
             printf("Stack Underflow.");
+            break;
         default:
             printf("Error desconocido.");
     }
