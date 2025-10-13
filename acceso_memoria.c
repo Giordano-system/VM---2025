@@ -44,13 +44,15 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
 
 void setMemoria(VM *MaquinaVirtual, int operando, int valor){
     int i, numCeldas;
+    char valoraux;
     long int pos, base;
     modificoLAR_MAR(MaquinaVirtual, operando);
     numCeldas = 4 - (shiftRightLogico(operando,22) & 0x3);
     base = operando;
     pos = logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[(base >> 16) & 0x1F] + (base & 0xFFFF));
     for (i=0;i<numCeldas;i++){
-        MaquinaVirtual->Memoria[pos] = valor >> (8 * (numCeldas - i - 1)) & 0xFF;
+        valoraux = valor >> (8 * (numCeldas - i - 1)) & 0xFF;
+        MaquinaVirtual->Memoria[pos] = valoraux;
         pos++;
     }
     MaquinaVirtual->Registros[MBR] = valor; //El valor trabajado en la memoria lo copio directo en la MBR

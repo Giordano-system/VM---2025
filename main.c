@@ -236,7 +236,7 @@ void leerCabecera(unsigned char cabecera[8], VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("TP5Ejercicio3b.vmx","rb");
+    arch = fopen("Ej3b.vmx","rb");
     if (arch){
         for (i=0; i<6; i++){
             fread(&byte,1,1,arch);
@@ -382,7 +382,7 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
     unsigned char byte;
     int i;
 
-    arch=fopen("TP5Ejercicio3b.vmx","rb");
+    arch=fopen("Ej3b.vmx","rb");
     if (arch){
 
         if(version==1)
@@ -1013,6 +1013,7 @@ void sys(VM *MaquinaVirtual){
             posicion = logica_fisica(*MaquinaVirtual, base);
             car = MaquinaVirtual->Memoria[posicion];
         }
+
         printf("\n");
     } else if (tarea == 7){
         system("cls");
