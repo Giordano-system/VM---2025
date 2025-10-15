@@ -20,33 +20,40 @@ int logica_fisica(VM MaquinaVirtual, int registro){
 }
 
 void modificoLAR_MAR(VM *MaquinaVirtual, int operando){
+    int numBytes = 4 - shiftRightLogico(operando,22) & 0x3;
     MaquinaVirtual->Registros[LAR] = (operando & 0xFFFF) + (MaquinaVirtual->Registros[(shiftRightLogico(operando,16)) & 0x1F]); // Armo el LAR 2 primeros bytes del segmento y los 2 ultimos el offset
-    MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[LAR]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
+    MaquinaVirtual->Registros[MAR] = (numBytes << 16) | logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[LAR]); //Paso el LAR para que me calcule la posicion fisica de este y almacenarlo en el MAR
 }
 
 void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
-    int pos,i,aux;
+    int i,aux,tamCelda;
+    long int pos,base;
+    tamCelda = 4 - (shiftRightLogico(operando,22) & 0x3);
     modificoLAR_MAR(MaquinaVirtual, operando);
-    pos = MaquinaVirtual->Registros[MAR] & 0xFFFF; // pos tiene la direccion fisica para acceder a memoria
-    *valor = MaquinaVirtual->Memoria[pos];
-    *valor = *valor << 24; //Los primeros 8 bits que leo son los mas significativos, entonces los corro
-    for (i=0;i<3;i++){
-        pos+=1;
+    base = operando;
+    pos = logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[(base >> 16) & 0x1F] + (base & 0xFFFF));
+    *valor=0;
+    for (i=0;i<tamCelda;i++){
         aux = MaquinaVirtual->Memoria[pos];
-        aux = aux << (16-i*8); //A Medida que voy leyendo, los bits que leo son menos significativos, entonces los voy corriendo menos
+        aux = aux << (8*(tamCelda-1) - 8*i); //A Medida que voy leyendo, los bits que leo son menos significativos, entonces los voy corriendo menos
         *valor |= aux;
+        pos++;
     }
     MaquinaVirtual->Registros[MBR] = *valor; //El valor trabajado en la memoria lo copio directo en la MBR
 }
 
 void setMemoria(VM *MaquinaVirtual, int operando, int valor){
-    int pos,i;
+    int i, numCeldas;
+    char valoraux;
+    long int pos, base;
     modificoLAR_MAR(MaquinaVirtual, operando);
-    pos = MaquinaVirtual->Registros[MAR] & 0xFFFF;
-    MaquinaVirtual->Memoria[pos] = (valor >> 24) & 0xFF; //Asigno el byte mas significativo de valor a la primera posicion de memoria ocupada por el valor
-    for (i=0;i<3;i++){
-        pos +=1;
-        MaquinaVirtual->Memoria[pos] = (valor >> (16-8*i)) & 0xFF;
+    numCeldas = 4 - (shiftRightLogico(operando,22) & 0x3);
+    base = operando;
+    pos = logica_fisica(*MaquinaVirtual,MaquinaVirtual->Registros[(base >> 16) & 0x1F] + (base & 0xFFFF));
+    for (i=0;i<numCeldas;i++){
+        valoraux = valor >> (8 * (numCeldas - i - 1)) & 0xFF;
+        MaquinaVirtual->Memoria[pos] = valoraux;
+        pos++;
     }
     MaquinaVirtual->Registros[MBR] = valor; //El valor trabajado en la memoria lo copio directo en la MBR
 }

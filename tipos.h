@@ -4,7 +4,9 @@ typedef struct TSR{
 } TSR;
 
 typedef struct VM {
-    unsigned char Memoria[16384]; // MODIFIQUE ESTO, POSIBLE CREACION DE ERRORES (IMPORTANTE!!!!!!!)
+    unsigned int tamanoMemoria;
     TSR tabla_seg[8];
     int Registros[32];
+    char nombreVMI[100], nombreVMX[100];
+    unsigned char Memoria[16384];
 } VM;
