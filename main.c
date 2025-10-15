@@ -142,6 +142,8 @@ void getGeneral(VM *,int,int *);
 void setGeneral(VM *,int,int);
 void actualizaCC(VM *,int);
 unsigned int shiftRightLogico(int,int);
+void manejarBreakpoint(VM *);
+void ejecutarInstruccion(VM *);
 void desensamblado(VM *);
 void errores(int);
 
@@ -1022,9 +1024,7 @@ void sys(VM *MaquinaVirtual){
     } else if (tarea == 7){
         system("cls");
     } else if (tarea == 15){ //Breakpoint
-            if (strcmp(MaquinaVirtual->nombreVMI,"")){
-                creaArchivoVMI(*MaquinaVirtual);
-            }
+            manejarBreakpoint(MaquinaVirtual);
     } else {
         printf("Llamada desconocida. \n");
         exit(1);
@@ -1033,6 +1033,34 @@ void sys(VM *MaquinaVirtual){
 
 void stop(VM *MaquinaVirtual){
     MaquinaVirtual->Registros[IP] = -1;
+}
+
+void ejecutarInstruccion(VM *MaquinaVirtual){
+    cargaoperacion(&MaquinaVirtual);
+    // Mover IP
+    MaquinaVirtual->Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual->Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
+    // Ejecuta instrucción
+    if ((MaquinaVirtual->Registros[OPC]>=0x00 && MaquinaVirtual->Registros[OPC]<=0x08)||(MaquinaVirtual->Registros[OPC]>=11 && MaquinaVirtual->Registros[OPC]<=31)) //Si la funcion no es reconocida aborto proceso.
+        operaciones[MaquinaVirtual->Registros[4]](MaquinaVirtual);
+    else
+        errores(OPE);
+    if (MaquinaVirtual->Registros[IP]==-1)
+        exit(0); //Termino la ejecucion de programa sin errores
+    // Si no termino el programa debo regresar al manejo del Breakpoint
+}
+
+void manejarBreakpoint(VM *MaquinaVirtual){
+    if (strcmp(MaquinaVirtual->nombreVMI,"")){
+        creaArchivoVMI(*MaquinaVirtual);
+        char opcion = getchar();
+        if (opcion == 'q')
+            MaquinaVirtual->Registros[IP]=-1;
+        else if (opcion == '\n'){
+            ejecutarInstruccion(MaquinaVirtual);
+            manejarBreakpoint(MaquinaVirtual);
+        }
+        else if (opcion=='g'){}
+    }
 }
 
 void desensamblado(VM *MaquinaVirtual){
