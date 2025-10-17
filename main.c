@@ -151,7 +151,7 @@ void errores(int);
 int main(int argc, char *argv[]){
     VM MaquinaVirtual;
     unsigned char cabecera[18];
-    int debug, cantParametros, i, j, puntero;
+    int debug, cantParametros, i, j, puntero, n;
     char **parametros;
 
     // Inicializar variables
@@ -160,7 +160,7 @@ int main(int argc, char *argv[]){
     parametros = NULL;
     strcpy(MaquinaVirtual.nombreVMI,"");
     strcpy(MaquinaVirtual.nombreVMX,"");
-    MaquinaVirtual.tamanoMemoria = 16 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
+    MaquinaVirtual.tamanoMemoria = /*16 * 1024; */ 48 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
 
     // Lectura de parametros
     for (int i = 1; i < argc; i++) {
@@ -179,7 +179,7 @@ int main(int argc, char *argv[]){
         }
     }
 
-    //if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
+ //   if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
         agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
         leerCabecera(cabecera, MaquinaVirtual);
         if (analizoValidez(cabecera)){
@@ -187,15 +187,25 @@ int main(int argc, char *argv[]){
             lecturaArchivo(&MaquinaVirtual, cabecera[5]);
         } else
             exit(1);
-    //} else // Lectura VMI
-    //    lecturaArchivoVMI(&MaquinaVirtual);
+ //   } else // Lectura VMI
+ //       lecturaArchivoVMI(&MaquinaVirtual);
 
     if(debug){}
-        //desensamblado(&MaquinaVirtual);
+ //       desensamblado(&MaquinaVirtual);
 
+    for(i=0;i<8;i++){
+        printf("%08X\n", MaquinaVirtual.Registros[i+26]);
+        printf("Base: %d Tamano: %d\n", MaquinaVirtual.tabla_seg[i].base,MaquinaVirtual.tabla_seg[i].tamano);
+    }
+
+    n = MaquinaVirtual.tabla_seg[0].tamano + MaquinaVirtual.tabla_seg[1].tamano;
+    for(i=0; i<n; i++)
+        printf("%02X  ", MaquinaVirtual.Memoria[i]);
     inicializaPila(&MaquinaVirtual,cantParametros,puntero);
     do {
         cargaoperacion(&MaquinaVirtual);
+        printf("%s\n",Mnemonicos[MaquinaVirtual.Registros[OPC]]);
+        printf("%08X\n", MaquinaVirtual.Registros[OPC]);
 
         // Mover IP
         MaquinaVirtual.Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual.Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual.Registros[OP2], 24);
@@ -242,7 +252,7 @@ void leerCabecera(unsigned char cabecera[8], VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("Ej3b.vmx","rb");
+    arch = fopen("prueba.vmx","rb");
     if (arch){
         for (i=0; i<6; i++){
             fread(&byte,1,1,arch);
@@ -297,7 +307,7 @@ void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cab
         // Const Segment
         if((cabecera[14]<<8 | cabecera[15]) != 0){
             if(seg)
-                MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].tamano;
+                MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].base + MaquinaVirtual->tabla_seg[seg-1].tamano;
             else
                 MaquinaVirtual->tabla_seg[seg].base = 0;
             MaquinaVirtual->tabla_seg[seg].tamano = cabecera[14]<<8 | cabecera[15];
@@ -309,7 +319,7 @@ void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cab
 
         // Code Segment
         if(seg)
-            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].tamano;
+            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].base + MaquinaVirtual->tabla_seg[seg-1].tamano;
         else
             MaquinaVirtual->tabla_seg[seg].base = 0;
         MaquinaVirtual->tabla_seg[seg].tamano = cabecera[6]<<8 | cabecera[7];
@@ -319,7 +329,7 @@ void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cab
 
         // Data Segment
         if((cabecera[8]<<8 | cabecera[9]) != 0){
-            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].tamano;
+            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].base + MaquinaVirtual->tabla_seg[seg-1].tamano;
             MaquinaVirtual->tabla_seg[seg].tamano = cabecera[8]<<8 | cabecera[9];
             MaquinaVirtual->Registros[DS] = seg << 16;
             tamano += MaquinaVirtual->tabla_seg[seg].tamano;
@@ -329,7 +339,7 @@ void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cab
 
         // Extra Segment
         if((cabecera[10]<<8 | cabecera[11]) != 0){
-            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].tamano;
+            MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].base + MaquinaVirtual->tabla_seg[seg-1].tamano;
             MaquinaVirtual->tabla_seg[seg].tamano = cabecera[10]<<8 | cabecera[11];
             MaquinaVirtual->Registros[ES] = seg << 16;
             tamano += MaquinaVirtual->tabla_seg[seg].tamano;
@@ -338,7 +348,7 @@ void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cab
             MaquinaVirtual->Registros[ES] = -1;
 
         // Stack Segment
-        MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].tamano;
+        MaquinaVirtual->tabla_seg[seg].base = MaquinaVirtual->tabla_seg[seg-1].base + MaquinaVirtual->tabla_seg[seg-1].tamano;
         MaquinaVirtual->tabla_seg[seg].tamano = cabecera[12]<<8 | cabecera[13];
         MaquinaVirtual->Registros[SS] = seg << 16;
         tamano += MaquinaVirtual->tabla_seg[seg].tamano;
@@ -388,7 +398,7 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
     unsigned char byte;
     int i;
 
-    arch=fopen("Ej3b.vmx","rb");
+    arch=fopen("prueba.vmx","rb");
     if (arch){
 
         if(version==1)
@@ -400,14 +410,14 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
 
         fread(&byte,1,1,arch);
         i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
-        while((i - MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS]].base) < MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS]].tamano){
-            MaquinaVirtual->Memoria[i]=byte;
+        while((i - MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS] >> 16].base) < MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS] >> 16].tamano){
+            MaquinaVirtual->Memoria[i] = byte;
             i++;
             fread(&byte,1,1,arch);
         }
 
         if(!feof(arch)){
-            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[CS]);
+            i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[KS]);
             fread(&byte,1,1,arch);
             while(!feof(arch)){
                 MaquinaVirtual->Memoria[i]=byte;
@@ -632,7 +642,9 @@ unsigned int shiftRightLogico(int valor,int shift){
 }
 
 void jmp(VM *MaquinaVirtual){
+    printf("IP: %08X\n", MaquinaVirtual->Registros[IP]);
     MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
+    printf("IP: %08X\n", MaquinaVirtual->Registros[IP]);
 }
 void jz(VM *MaquinaVirtual){
     if(((MaquinaVirtual->Registros[CC] >> 30) & 1) == 1)
@@ -666,6 +678,8 @@ void not(VM *MaquinaVirtual){
 }
 void mov(VM *MaquinaVirtual){
     int B;
+    printf("OP1: %08X\n", MaquinaVirtual->Registros[OP1]);
+    printf("BP: %08X\n", MaquinaVirtual->Registros[BP]);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], B);
 }
@@ -1036,7 +1050,7 @@ void stop(VM *MaquinaVirtual){
 }
 
 void ejecutarInstruccion(VM *MaquinaVirtual){
-    cargaoperacion(&MaquinaVirtual);
+    cargaoperacion(MaquinaVirtual);
     // Mover IP
     MaquinaVirtual->Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual->Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual->Registros[OP2], 24);
     // Ejecuta instrucción
@@ -1065,21 +1079,21 @@ void manejarBreakpoint(VM *MaquinaVirtual){
 
 void desensamblado(VM *MaquinaVirtual){
     short int posfisica;
-    int i, inc, n;
-    char cadena[200];
+    int i, inc, n, puntero;
+    char cadena[200], registro[5];
     char byte;
-    int aux, n1, n2, pos, registro;
+    int aux, n1, n2, pos;
 
     if(MaquinaVirtual->Registros[KS] != -1) {
         puntero = MaquinaVirtual->Registros[KS];
 
-        while((puntero & 0xFFFF) < MaquinaVirtual.tabla_seg[shiftRightLogico(puntero,16)].tamano) {
+        while((puntero & 0xFFFF) < MaquinaVirtual->tabla_seg[shiftRightLogico(puntero,16)].tamano) {
             posfisica = logica_fisica(*MaquinaVirtual, puntero);
             printf(" [%04X] ", posfisica);
 
             i=0;
-            while(MaquinaVirtual.Memoria[posfisica] != 0) {
-                cadena[i] = MaquinaVirtual.Memoria[posfisica];
+            while(MaquinaVirtual->Memoria[posfisica] != 0) {
+                cadena[i] = MaquinaVirtual->Memoria[posfisica];
                 i++;
                 posfisica++;
                 puntero++;
@@ -1257,7 +1271,7 @@ void desensamblado(VM *MaquinaVirtual){
         printf("\n");
 
         puntero += inc;
-    }while((puntero & 0xFFFF) < MaquinaVirtual.tabla_seg[shiftRightLogico(puntero,16)].tamano);
+    }while((puntero & 0xFFFF) < MaquinaVirtual->tabla_seg[shiftRightLogico(puntero,16)].tamano);
 }
 
 void errores(int error) {
