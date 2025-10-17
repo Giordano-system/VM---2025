@@ -8,7 +8,6 @@ int logica_fisica(VM MaquinaVirtual, int registro){
     if(shiftRightLogico(registro,16)>=0 && shiftRightLogico(registro,16)<CANTSEG){
         base = MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].base;
         offset = registro & 0xFFFF;
-        printf("%08X\n",registro);
         if(offset < MaquinaVirtual.tabla_seg[shiftRightLogico(registro,16)].tamano) // Si no se cumple esta condicion hubo una invasion de memoria - Segmentation Fold
             valor = base + offset;
         else if(registro == MaquinaVirtual.Registros[3])

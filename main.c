@@ -158,8 +158,8 @@ int main(int argc, char *argv[]){
     debug = 0;
     cantParametros = 0;
     parametros = NULL;
-    strcpy(MaquinaVirtual.nombreVMI,"");
-    strcpy(MaquinaVirtual.nombreVMX,"");
+    strcpy(MaquinaVirtual.nombreVMI,"prueba.vmi");
+    strcpy(MaquinaVirtual.nombreVMX,"prueba.vmx");
     MaquinaVirtual.tamanoMemoria = /*16 * 1024; */ 48 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
 
     // Lectura de parametros
@@ -193,19 +193,16 @@ int main(int argc, char *argv[]){
     if(debug){}
  //       desensamblado(&MaquinaVirtual);
 
-    for(i=0;i<8;i++){
-        printf("%08X\n", MaquinaVirtual.Registros[i+26]);
-        printf("Base: %d Tamano: %d\n", MaquinaVirtual.tabla_seg[i].base,MaquinaVirtual.tabla_seg[i].tamano);
+    if(MaquinaVirtual.Registros[ES] != -1){
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 1] = (MaquinaVirtual.Registros[ES] >> 16) & 0xFF;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 2] = 0;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
     }
 
-    n = MaquinaVirtual.tabla_seg[0].tamano + MaquinaVirtual.tabla_seg[1].tamano;
-    for(i=0; i<n; i++)
-        printf("%02X  ", MaquinaVirtual.Memoria[i]);
     inicializaPila(&MaquinaVirtual,cantParametros,puntero);
     do {
         cargaoperacion(&MaquinaVirtual);
-        printf("%s\n",Mnemonicos[MaquinaVirtual.Registros[OPC]]);
-        printf("%08X\n", MaquinaVirtual.Registros[OPC]);
 
         // Mover IP
         MaquinaVirtual.Registros[IP] += 1 + shiftRightLogico(MaquinaVirtual.Registros[OP1], 24) + shiftRightLogico(MaquinaVirtual.Registros[OP2], 24);
@@ -252,7 +249,7 @@ void leerCabecera(unsigned char cabecera[8], VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
     int i;
-    arch = fopen("prueba.vmx","rb");
+    arch = fopen(MaquinaVirtual.nombreVMX,"rb");
     if (arch){
         for (i=0; i<6; i++){
             fread(&byte,1,1,arch);
@@ -398,7 +395,7 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
     unsigned char byte;
     int i;
 
-    arch=fopen("prueba.vmx","rb");
+    arch=fopen(MaquinaVirtual->nombreVMX,"rb");
     if (arch){
 
         if(version==1)
@@ -493,12 +490,12 @@ void lecturaArchivoVMI(VM *MaquinaVirtual){
 void creaArchivoVMI(VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
-    char version[6] = {'V', 'M', 'X', '2', '5', 0x1};
-    int i, j, byte4;
+    char version[6] = {'V', 'M', 'I', '2', '5', 0x1};
+    int i, j, byte4, n;
     short int byte2;
 
 
-    arch = fopen(MaquinaVirtual.nombreVMI,"rb");
+    arch = fopen(MaquinaVirtual.nombreVMI,"wb");
     if (arch){
         // Identificador y Versión
         for (i=0; i<6; i++){
@@ -524,7 +521,8 @@ void creaArchivoVMI(VM MaquinaVirtual){
         }
 
         // Memoria
-        for(i=0; i<MaquinaVirtual.tamanoMemoria; i++){
+        n= MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[SS] >> 16].base + MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[SS] >> 16].tamano;
+        for(i=0; i<n; i++){
             byte = MaquinaVirtual.Memoria[i];
             fwrite(&byte,1,1,arch);
         }
@@ -642,9 +640,7 @@ unsigned int shiftRightLogico(int valor,int shift){
 }
 
 void jmp(VM *MaquinaVirtual){
-    printf("IP: %08X\n", MaquinaVirtual->Registros[IP]);
     MaquinaVirtual->Registros[IP] = ((MaquinaVirtual->Registros[IP] >> 16) << 16) | (MaquinaVirtual->Registros[OP1] & 0xFFFF);
-    printf("IP: %08X\n", MaquinaVirtual->Registros[IP]);
 }
 void jz(VM *MaquinaVirtual){
     if(((MaquinaVirtual->Registros[CC] >> 30) & 1) == 1)
@@ -678,8 +674,6 @@ void not(VM *MaquinaVirtual){
 }
 void mov(VM *MaquinaVirtual){
     int B;
-    printf("OP1: %08X\n", MaquinaVirtual->Registros[OP1]);
-    printf("BP: %08X\n", MaquinaVirtual->Registros[BP]);
     getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP2], &B);
     setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], B);
 }
