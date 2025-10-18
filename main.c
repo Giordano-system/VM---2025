@@ -180,28 +180,29 @@ int main(int argc, char *argv[]){
     }
 
  //   if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
-        agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
-        leerCabecera(cabecera, MaquinaVirtual);
-        if (analizoValidez(cabecera)){
-            iniciabilizarTablaSegmentosyRegistros(&MaquinaVirtual, cabecera);
-            lecturaArchivo(&MaquinaVirtual, cabecera[5]);
-        } else
-            exit(1);
+ //       agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
+  //      leerCabecera(cabecera, MaquinaVirtual);
+   //     if (analizoValidez(cabecera)){
+  //          iniciabilizarTablaSegmentosyRegistros(&MaquinaVirtual, cabecera);
+ //           lecturaArchivo(&MaquinaVirtual, cabecera[5]);
+ //       } else
+ //           exit(1);
  //   } else // Lectura VMI
  //       lecturaArchivoVMI(&MaquinaVirtual);
 
     //if(debug){
-       desensamblado(&MaquinaVirtual);
+ //      desensamblado(&MaquinaVirtual);
     //}
 
     if(MaquinaVirtual.Registros[ES] != -1){
-        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
-        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 1] = (MaquinaVirtual.Registros[ES] >> 16) & 0xFF;
-        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 2] = 0;
-        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
+ //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
+ //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 1] = (MaquinaVirtual.Registros[ES] >> 16) & 0xFF;
+ //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 2] = 0;
+ //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
     }
 
-    inicializaPila(&MaquinaVirtual,cantParametros,puntero);
+ //   inicializaPila(&MaquinaVirtual,cantParametros,puntero);
+    lecturaArchivoVMI(&MaquinaVirtual);
     do {
         cargaoperacion(&MaquinaVirtual);
 
@@ -214,7 +215,6 @@ int main(int argc, char *argv[]){
         else
             errores(OPE);
     } while(MaquinaVirtual.Registros[IP] != -1 && logica_fisica(MaquinaVirtual, MaquinaVirtual.Registros[IP])!= -1);
-
     return 0;
 }
 
@@ -433,8 +433,8 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
 void lecturaArchivoVMI(VM *MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
-    char version[6] = {'V', 'M', 'X', '2', '5', 0x1};
-    int i, j;
+    char version[6] = {'V', 'M', 'I', '2', '5', 0x1};
+    int i, j, n;
 
     arch = fopen(MaquinaVirtual->nombreVMI,"rb");
     if (arch){
@@ -476,7 +476,9 @@ void lecturaArchivoVMI(VM *MaquinaVirtual){
         }
 
         // Memoria
-        for(i=0; i<MaquinaVirtual->tamanoMemoria; i++){
+        // N se calcula como si SP fuera el ultimo registro... arreglar para generalizar
+        n = MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SP] >> 16].base + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SP] >> 16].tamano;
+        for(i=0; i<n; i++){
             fread(&byte,1,1,arch);
             MaquinaVirtual->Memoria[i] = byte;
         }
@@ -492,7 +494,7 @@ void creaArchivoVMI(VM MaquinaVirtual){
     FILE* arch;
     unsigned char byte;
     char version[6] = {'V', 'M', 'I', '2', '5', 0x1};
-    int i, j, byte4, n;
+    int i, j, byte4, n, val;
     short int byte2;
 
 
@@ -505,19 +507,27 @@ void creaArchivoVMI(VM MaquinaVirtual){
         }
 
         // Espacio de memoria
-        fwrite(&(MaquinaVirtual.tamanoMemoria),2,1,arch);
+        byte2 = (MaquinaVirtual.tamanoMemoria & 0xFF) << 8;
+        byte2 |= (MaquinaVirtual.tamanoMemoria & 0xFF00) >> 8;
+        fwrite(&byte2,2,1,arch);
 
         // Registros
         for(i=0; i<32; i++){
-            byte4 = MaquinaVirtual.Registros[i];
+            val = MaquinaVirtual.Registros[i];
+            byte4 = (val & 0x000000FF) << 24;
+            byte4 |= (val & 0x0000FF00) << 8;
+            byte4 |= (val & 0x00FF0000) >> 8;
+            byte4 |= (val & 0xFF000000) >> 24;
             fwrite(&byte4,4,1,arch);
         }
 
         // Tabla de segmentos
         for(i=0; i<8; i++){
-            byte2 = MaquinaVirtual.tabla_seg[i].base;
+            byte2 = (MaquinaVirtual.tabla_seg[i].base & 0xFF) << 8;
+            byte2 |= (MaquinaVirtual.tabla_seg[i].base & 0xFF00) >> 8;
             fwrite(&byte2,2,1,arch);
-            byte2 = MaquinaVirtual.tabla_seg[i].tamano;
+            byte2 = (MaquinaVirtual.tabla_seg[i].tamano & 0xFF) << 8;
+            byte2 |= (MaquinaVirtual.tabla_seg[i].tamano & 0xFF00) >> 8;
             fwrite(&byte2,2,1,arch);
         }
 
