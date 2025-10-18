@@ -190,8 +190,9 @@ int main(int argc, char *argv[]){
  //   } else // Lectura VMI
  //       lecturaArchivoVMI(&MaquinaVirtual);
 
-    if(debug){}
- //       desensamblado(&MaquinaVirtual);
+    //if(debug){
+       desensamblado(&MaquinaVirtual);
+    //}
 
     if(MaquinaVirtual.Registros[ES] != -1){
         MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
@@ -1075,7 +1076,7 @@ void desensamblado(VM *MaquinaVirtual){
     short int posfisica;
     int i, inc, n, puntero;
     char cadena[200], registro[5];
-    char byte;
+    unsigned char byte;
     int aux, n1, n2, pos;
 
     if(MaquinaVirtual->Registros[KS] != -1) {
@@ -1182,33 +1183,40 @@ void desensamblado(VM *MaquinaVirtual){
             else
                 aux = MaquinaVirtual->Registros[OP1];
 
-            switch((MaquinaVirtual->Registros[OP1] >> 6) & 0x3) {
-                case 0:
-                    strcpy(registro, registros[aux & 0x1F]);
-                    break;
-                case 1:
-                    strcpy(registro, registros8l[(aux & 0x1F) - 10]);
-                    break;
-                case 2:
-                    strcpy(registro, registros8h[(aux & 0x1F) - 10]);
-                    break;
-                case 3:
-                    strcpy(registro, registros16[(aux & 0x1F) - 10]);
-                    break;
-            }
+            strcpy(registro, registros[aux & 0x1F]);
+            if(((MaquinaVirtual->Registros[OP1] >> 24) & 0x3)==1)
+                switch((MaquinaVirtual->Registros[OP1] >> 6) & 0x3) {
+                    case 0:
+                        strcpy(registro, registros[aux & 0x1F]);
+                        break;
+                    case 1:
+                        strcpy(registro, registros8l[(aux & 0x1F) - 10]);
+                        break;
+                    case 2:
+                        strcpy(registro, registros8h[(aux & 0x1F) - 10]);
+                        break;
+                    case 3:
+                        strcpy(registro, registros16[(aux & 0x1F) - 10]);
+                        break;
+                }
         }
         switch((MaquinaVirtual->Registros[OP1] >> 24) & 0x3) {
             case 1:
                 printf("%s",registro);
                 break;
             case 2:
-                printf("%d",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
+                if(MaquinaVirtual->Registros[OPC] >= 1 && MaquinaVirtual->Registros[OPC] <= 7 || MaquinaVirtual->Registros[OPC] == 13)
+                    printf("%X",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
+                else
+                    printf("%d",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
                 break;
             case 3:
                 if((MaquinaVirtual->Registros[OP1] & 0xFFFF) == 0)
                     printf("%c[%s]",byte,registro);
+                else if((MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16 > 0)
+                    printf("%c[%s + %d]",byte,registro,(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
                 else
-                    printf("%c[%s + %d]",byte,registro,MaquinaVirtual->Registros[OP1] & 0xFFFF);
+                    printf("%c[%s - %d]",byte,registro,-((MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16));
                 break;
         }
 
@@ -1233,20 +1241,22 @@ void desensamblado(VM *MaquinaVirtual){
             else
                 aux = MaquinaVirtual->Registros[OP2];
 
-            switch((MaquinaVirtual->Registros[OP2] >> 6) & 0x3) {
-                case 0:
-                    strcpy(registro, registros[aux & 0x1F]);
-                    break;
-                case 1:
-                    strcpy(registro, registros8l[(aux & 0x1F) - 10]);
-                    break;
-                case 2:
-                    strcpy(registro, registros8h[(aux & 0x1F) - 10]);
-                    break;
-                case 3:
-                    strcpy(registro, registros16[(aux & 0x1F) - 10]);
-                    break;
-            }
+            strcpy(registro, registros[aux & 0x1F]);
+            if(((MaquinaVirtual->Registros[OP2] >> 24) & 0x3)==1)
+                switch((MaquinaVirtual->Registros[OP2] >> 6) & 0x3) {
+                    case 0:
+                        strcpy(registro, registros[aux & 0x1F]);
+                        break;
+                    case 1:
+                        strcpy(registro, registros8l[(aux & 0x1F) - 10]);
+                        break;
+                    case 2:
+                        strcpy(registro, registros8h[(aux & 0x1F) - 10]);
+                        break;
+                    case 3:
+                        strcpy(registro, registros16[(aux & 0x1F) - 10]);
+                        break;
+                }
         }
         switch((MaquinaVirtual->Registros[OP2] >> 24) & 0x3) {
             case 1:
@@ -1258,8 +1268,10 @@ void desensamblado(VM *MaquinaVirtual){
             case 3:
                 if((MaquinaVirtual->Registros[OP2] & 0xFFFF) == 0)
                     printf("%c[%s]",byte,registro);
+                else if((MaquinaVirtual->Registros[OP2] & 0xFFFF) << 16 >> 16 > 0)
+                    printf("%c[%s + %d]",byte,registro,(MaquinaVirtual->Registros[OP2] & 0xFFFF) << 16 >> 16);
                 else
-                    printf("%c[%s + %d]",byte,registro,MaquinaVirtual->Registros[OP2] & 0xFFFF);
+                    printf("%c[%s - %d]",byte,registro,-((MaquinaVirtual->Registros[OP2] & 0xFFFF) << 16 >> 16));
                 break;
         }
         printf("\n");
