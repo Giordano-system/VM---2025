@@ -154,12 +154,19 @@ int main(int argc, char *argv[]){
     int debug, cantParametros, i, j, puntero, n;
     char **parametros;
 
+
+    static char *args[] = {"programa.exe", "pruebareg.vmx", "-d", NULL};
+
+    argc = 3;       // cantidad de argumentos
+    argv = args;    // apuntamos argv a nuestro arreglo
+
+
     // Inicializar variables
     debug = 0;
     cantParametros = 0;
     parametros = NULL;
-    strcpy(MaquinaVirtual.nombreVMI,"prueba.vmi");
-    strcpy(MaquinaVirtual.nombreVMX,"prueba.vmx");
+    strcpy(MaquinaVirtual.nombreVMI,"");
+    strcpy(MaquinaVirtual.nombreVMX,"");
     MaquinaVirtual.tamanoMemoria = /*16 * 1024; */ 48 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
 
     // Lectura de parametros
@@ -179,30 +186,29 @@ int main(int argc, char *argv[]){
         }
     }
 
- //   if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
- //       agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
-  //      leerCabecera(cabecera, MaquinaVirtual);
-   //     if (analizoValidez(cabecera)){
-  //          iniciabilizarTablaSegmentosyRegistros(&MaquinaVirtual, cabecera);
- //           lecturaArchivo(&MaquinaVirtual, cabecera[5]);
- //       } else
- //           exit(1);
- //   } else // Lectura VMI
- //       lecturaArchivoVMI(&MaquinaVirtual);
+    if(strcmp(MaquinaVirtual.nombreVMX,"") != 0) { // Preparo MV
+       agregaParamSegment(&MaquinaVirtual,parametros,cantParametros,&puntero);
+       leerCabecera(cabecera, MaquinaVirtual);
+      if (analizoValidez(cabecera)){
+           iniciabilizarTablaSegmentosyRegistros(&MaquinaVirtual, cabecera);
+           lecturaArchivo(&MaquinaVirtual, cabecera[5]);
+      } else
+           exit(1);
+    } else // Lectura VMI
+        lecturaArchivoVMI(&MaquinaVirtual);
 
-    //if(debug){
- //      desensamblado(&MaquinaVirtual);
-    //}
-
-    if(MaquinaVirtual.Registros[ES] != -1){
- //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
- //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 1] = (MaquinaVirtual.Registros[ES] >> 16) & 0xFF;
- //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 2] = 0;
- //       MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
+    if(debug){
+       desensamblado(&MaquinaVirtual);
     }
 
- //   inicializaPila(&MaquinaVirtual,cantParametros,puntero);
-    lecturaArchivoVMI(&MaquinaVirtual);
+    if(MaquinaVirtual.Registros[ES] != -1){
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base] = 0;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 1] = (MaquinaVirtual.Registros[ES] >> 16) & 0xFF;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 2] = 0;
+        MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
+    }
+
+    inicializaPila(&MaquinaVirtual,cantParametros,puntero);
     do {
         cargaoperacion(&MaquinaVirtual);
 
@@ -416,7 +422,6 @@ void lecturaArchivo(VM *MaquinaVirtual, int version){
 
         if(!feof(arch)){
             i = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[KS]);
-            fread(&byte,1,1,arch);
             while(!feof(arch)){
                 MaquinaVirtual->Memoria[i]=byte;
                 i++;
@@ -1038,8 +1043,6 @@ void sys(VM *MaquinaVirtual){
             posicion = logica_fisica(*MaquinaVirtual, base);
             car = MaquinaVirtual->Memoria[posicion];
         }
-
-        printf("\n");
     } else if (tarea == 7){
         system("cls");
     } else if (tarea == 15){ //Breakpoint
@@ -1104,11 +1107,14 @@ void desensamblado(VM *MaquinaVirtual){
                 puntero++;
             }
             cadena[i+1] = 0;
+            puntero++;
 
             n=i+1;
             i=0;
-            while(i<n && i<6)
+            while(i<n && i<6) {
                 printf("%02X ",cadena[i]);
+                i++;
+            }
 
             if(n==7)
                 printf("00 ");
@@ -1118,7 +1124,14 @@ void desensamblado(VM *MaquinaVirtual){
                 for(i=n; i<7;i++)
                     printf("   ");
 
-            printf(" |  \"%s\"\n", cadena); // Probar que hace si hay caracteres no imprimibles
+            printf(" | \"");
+            n = strlen(cadena);
+            for(i=0; i<n; i++)
+                if (isprint((unsigned char)cadena[i]))
+                    printf("%c", (char)cadena[i]);
+                else
+                    printf(".");
+            printf("\"\n");
         }
     }
     puntero = MaquinaVirtual->Registros[CS];
