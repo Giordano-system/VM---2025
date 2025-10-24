@@ -155,7 +155,7 @@ int main(int argc, char *argv[]){
     char **parametros;
 
 
-    static char *args[] = {"programa.exe", "pruebareg.vmx", "-d", NULL};
+    static char *args[] = {"programa.exe", "Ej3b.vmx", "-d", NULL};
 
     argc = 3;       // cantidad de argumentos
     argv = args;    // apuntamos argv a nuestro arreglo
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]){
     parametros = NULL;
     strcpy(MaquinaVirtual.nombreVMI,"");
     strcpy(MaquinaVirtual.nombreVMX,"");
-    MaquinaVirtual.tamanoMemoria = /*16 * 1024; */ 48 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
+    MaquinaVirtual.tamanoMemoria = 16 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
 
     // Lectura de parametros
     for (int i = 1; i < argc; i++) {
@@ -208,7 +208,8 @@ int main(int argc, char *argv[]){
         MaquinaVirtual.Memoria[MaquinaVirtual.tabla_seg[MaquinaVirtual.Registros[ES] >> 16].base + 3] = 4;
     }
 
-    inicializaPila(&MaquinaVirtual,cantParametros,puntero);
+    if(cabecera[5] == 2)
+        inicializaPila(&MaquinaVirtual,cantParametros,puntero);
     do {
         cargaoperacion(&MaquinaVirtual);
 
@@ -267,8 +268,8 @@ void leerCabecera(unsigned char cabecera[8], VM MaquinaVirtual){
                fread(&byte,1,1,arch);
                cabecera[i]=byte;
             }
-        else(cabecera[5] == 2)
-            ;for(i=6; i<18; i++) {
+        else if(cabecera[5] == 2)
+            for(i=6; i<18; i++) {
                fread(&byte,1,1,arch);
                cabecera[i]=byte;
             }
@@ -290,13 +291,17 @@ int analizoValidez(unsigned char cabecera[]){
 void iniciabilizarTablaSegmentosyRegistros(VM *MaquinaVirtual, unsigned char cabecera[]){
     int seg, tamano;
 
-    if(strlen(cabecera)==8){ // version 1
+    if(cabecera[5] == 1){ // version 1
         MaquinaVirtual->tabla_seg[0].base=0;
         MaquinaVirtual->tabla_seg[0].tamano=cabecera[6]<<8 | cabecera[7];
         MaquinaVirtual->Registros[CS] = 0;
         MaquinaVirtual->tabla_seg[1].base=MaquinaVirtual->tabla_seg[0].tamano;
         MaquinaVirtual->tabla_seg[1].tamano=MaquinaVirtual->tamanoMemoria-MaquinaVirtual->tabla_seg[0].tamano;
         MaquinaVirtual->Registros[DS] = 1 << 16;
+        MaquinaVirtual->Registros[PS] = -1;
+        MaquinaVirtual->Registros[KS] = -1;
+        MaquinaVirtual->Registros[ES] = -1;
+        MaquinaVirtual->Registros[SS] = -1;
     } else { // version 2
         if(MaquinaVirtual->Registros[PS] != -1){
             seg = 1;
@@ -818,7 +823,10 @@ void push(VM *MaquinaVirtual){
     if(MaquinaVirtual->Registros[SP] < MaquinaVirtual->Registros[SS])
         errores(SO);
     else {
-        getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A); // SE DEBERIA PROPAGAR EL SIGNO (POR EJEMPLO, SI EAX 1234ABCD, EL AX ES 0000ABCD, POR LO TANTO, EL VALOR A DEBERIA DE QUEDAR CON FFFFABCD)
+        getGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], &A);
+        MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[SP];
+        MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]);
+        MaquinaVirtual->Registros[MBR] = A;
         pos = logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[SP]);
         for(i=0; i<4; i++){
             MaquinaVirtual->Memoria[pos] = (A >> (24-8*i)) & 0xFF;
@@ -838,6 +846,9 @@ void pop(VM *MaquinaVirtual){
             A |= MaquinaVirtual->Memoria[pos] << (24-i*8);
             pos++;
         }
+        MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[SP];
+        MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]);
+        MaquinaVirtual->Registros[MBR] = A;
         setGeneral(MaquinaVirtual, MaquinaVirtual->Registros[OP1], A);
         MaquinaVirtual->Registros[SP] += 4;
     }
@@ -854,6 +865,9 @@ void call(VM *MaquinaVirtual){
             MaquinaVirtual->Memoria[pos] = (MaquinaVirtual->Registros[IP] >> (24-8*i)) & 0xFF;
             pos++;
         }
+        MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[SP];
+        MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]);
+        MaquinaVirtual->Registros[MBR] = MaquinaVirtual->Registros[IP];
         jmp(MaquinaVirtual);
     }
 }
@@ -869,6 +883,9 @@ void ret(VM *MaquinaVirtual){
             A |= MaquinaVirtual->Memoria[pos] << (24-i*8);
             pos++;
         }
+        MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[SP];
+        MaquinaVirtual->Registros[MAR] = (4 << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]);
+        MaquinaVirtual->Registros[MBR] = A;
         MaquinaVirtual->Registros[IP] = A;
         MaquinaVirtual->Registros[SP] += 4;
     }
@@ -881,7 +898,7 @@ void sys(VM *MaquinaVirtual){
     int numBytes = MaquinaVirtual->Registros[ECX] & 0xFFFF0000; // Aplico mascara para que quede en 0 todo menos los 2 bytes mas significativos de ecx
     numBytes = shiftRightLogico(numBytes,16);
     int eax = MaquinaVirtual->Registros[EAX]; //Formato de entrada/salida de los datos
-    if (!(tarea==7 || tarea==15) && (tarea>=1 && tarea<=4)){
+    if (tarea>=1 && tarea<=4){
         MaquinaVirtual->Registros[LAR] = MaquinaVirtual->Registros[EDX]; //Al LAR le doy el valor de EDX, ya que es contiene la posicion de memoria a la cual se accede
         MaquinaVirtual->Registros[MAR] = ((numCeldas*numBytes) << 16) | logica_fisica(*MaquinaVirtual, MaquinaVirtual->Registros[LAR]); //Modifico el MAR en base a el- LAR
     }
@@ -967,7 +984,7 @@ void sys(VM *MaquinaVirtual){
             long int valor=0;
             int j;
             long int posicion;
-            printf("[%04X] ", celda);
+            printf("[%04X]: ", celda);
             celda += numBytes;
             for (j=0;j<numBytes;j++){
                 posicion=logica_fisica(*MaquinaVirtual,base + i*numBytes + j);
@@ -1036,7 +1053,7 @@ void sys(VM *MaquinaVirtual){
         base = MaquinaVirtual->Registros[EDX];
         posicion = logica_fisica(*MaquinaVirtual, base);
         car = MaquinaVirtual->Memoria[posicion];
-        printf("[%04X] ", base);
+        printf("[%04X]: ", posicion);
         while (car!='\0'){
             printf("%c", car);
             base +=1;
@@ -1229,7 +1246,7 @@ void desensamblado(VM *MaquinaVirtual){
                 break;
             case 2:
                 if(MaquinaVirtual->Registros[OPC] >= 1 && MaquinaVirtual->Registros[OPC] <= 7 || MaquinaVirtual->Registros[OPC] == 13)
-                    printf("%X",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
+                    printf("%X",((MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16) + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[CS] >> 16].base);
                 else
                     printf("%d",(MaquinaVirtual->Registros[OP1] & 0xFFFF) << 16 >> 16);
                 break;
