@@ -1033,7 +1033,10 @@ void sys(VM *MaquinaVirtual){
         char car;
         base = MaquinaVirtual->Registros[EDX];
         char cadena[1024];
-        scanf("%s",cadena);
+        printf(" [%04X]: ", logica_fisica(*MaquinaVirtual,base));
+
+        fgets(cadena,1024,stdin);
+        cadena[strcspn(cadena,"\n")]='\0';
         i=0;
         car = cadena[i];
         while ((i<caracteres || caracteres==-1) && car!='\0'){
@@ -1043,7 +1046,6 @@ void sys(VM *MaquinaVirtual){
             base++;
             car = cadena[i];
         }
-        base +=1;
         posicion = logica_fisica(*MaquinaVirtual, base);
         MaquinaVirtual->Memoria[posicion] = '\0';
         fflush(stdin);
@@ -1053,7 +1055,7 @@ void sys(VM *MaquinaVirtual){
         base = MaquinaVirtual->Registros[EDX];
         posicion = logica_fisica(*MaquinaVirtual, base);
         car = MaquinaVirtual->Memoria[posicion];
-        printf("[%04X]: ", posicion);
+        printf(" [%04X]: ", posicion);
         while (car!='\0'){
             printf("%c", car);
             base++;
@@ -1093,6 +1095,7 @@ void manejarBreakpoint(VM *MaquinaVirtual){
     if (strcmp(MaquinaVirtual->nombreVMI,"")){
         creaArchivoVMI(*MaquinaVirtual);
         char opcion = getchar();
+        fflush(stdin);
         if (opcion == 'q')
             MaquinaVirtual->Registros[IP]=-1;
         else if (opcion == '\n'){

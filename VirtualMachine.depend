@@ -7,7 +7,7 @@
 	<stdio.h>
 	<stdlib.h>
 
-1760312350 source:d:\facultad\arquitectura\mv\vm---2025\main.c
+1761411976 source:d:\facultad\arquitectura\mv\vm---2025\main.c
 	<stdio.h>
 	<stdlib.h>
 	"acceso_memoria.h"
@@ -15,7 +15,7 @@
 	<ctype.h>
 	<string.h>
 
-1760312985 source:d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.c
+1761408343 source:d:\facultad\arquitectura\mv\vm---2025\acceso_memoria.c
 	"acceso_memoria.h"
 	<stdio.h>
 	<stdlib.h>
