@@ -155,9 +155,9 @@ int main(int argc, char *argv[]){
     char **parametros;
 
 
-    static char *args[] = {"programa.exe", "Ej3b.vmx", "-d", NULL};
+    static char *args[] = {"programa.exe", "pruebaSYS37F.vmx", "archivo.vmi", "-d", NULL};
 
-    argc = 3;       // cantidad de argumentos
+    argc = 4;       // cantidad de argumentos
     argv = args;    // apuntamos argv a nuestro arreglo
 
 
@@ -1033,20 +1033,20 @@ void sys(VM *MaquinaVirtual){
         char car;
         base = MaquinaVirtual->Registros[EDX];
         char cadena[1024];
-        scanf("%s",&cadena);
+        scanf("%s",cadena);
         i=0;
         car = cadena[i];
-        while (i<caracteres && car!='\0'){
-            base +=1;
+        while ((i<caracteres || caracteres==-1) && car!='\0'){
             posicion = logica_fisica(*MaquinaVirtual, base);
             MaquinaVirtual->Memoria[posicion] = car;
             i++;
+            base++;
             car = cadena[i];
         }
         base +=1;
         posicion = logica_fisica(*MaquinaVirtual, base);
         MaquinaVirtual->Memoria[posicion] = '\0';
-
+        fflush(stdin);
     } else if(tarea == 4){
         int i, base, posicion;
         char car;
@@ -1056,10 +1056,11 @@ void sys(VM *MaquinaVirtual){
         printf("[%04X]: ", posicion);
         while (car!='\0'){
             printf("%c", car);
-            base +=1;
+            base++;
             posicion = logica_fisica(*MaquinaVirtual, base);
             car = MaquinaVirtual->Memoria[posicion];
         }
+        fflush(stdin);
     } else if (tarea == 7){
         system("cls");
     } else if (tarea == 15){ //Breakpoint
