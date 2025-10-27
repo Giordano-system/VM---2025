@@ -154,7 +154,7 @@ int main(int argc, char *argv[]){
     int debug, cantParametros, i, j, puntero, n;
     char **parametros;
 
-
+    // Forma de ejecutar un programa como si estuvieras en consola
     static char *args[] = {"programa.exe", "pruebaSYS37F.vmx", "archivo.vmi", "-d", NULL};
 
     argc = 4;       // cantidad de argumentos
@@ -167,7 +167,7 @@ int main(int argc, char *argv[]){
     parametros = NULL;
     strcpy(MaquinaVirtual.nombreVMI,"");
     strcpy(MaquinaVirtual.nombreVMX,"");
-    MaquinaVirtual.tamanoMemoria = 16 * 1024; // REVISAR COMO LIMITAR EL ESPACIO DE MEMORIA
+    MaquinaVirtual.tamanoMemoria = 16 * 1024;
 
     // Lectura de parametros
     for (int i = 1; i < argc; i++) {
@@ -248,7 +248,7 @@ void agregaParamSegment(VM *MaquinaVirtual, char **parametros, int cantParametro
             }
         MaquinaVirtual->Registros[PS] = 0;
         MaquinaVirtual->tabla_seg[0].base = 0;
-        MaquinaVirtual->tabla_seg[0].tamano = pos; // Ver si era pos o pos-1
+        MaquinaVirtual->tabla_seg[0].tamano = pos;
     } else
         MaquinaVirtual->Registros[PS] = -1;
 }
@@ -486,7 +486,6 @@ void lecturaArchivoVMI(VM *MaquinaVirtual){
         }
 
         // Memoria
-        // N se calcula como si SP fuera el ultimo registro... arreglar para generalizar
         n = MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SP] >> 16].base + MaquinaVirtual->tabla_seg[MaquinaVirtual->Registros[SP] >> 16].tamano;
         for(i=0; i<n; i++){
             fread(&byte,1,1,arch);
@@ -598,7 +597,7 @@ void cargaoperacion(VM *MaquinaVirtual){
 }
 
 void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
-    switch((operando >> 24) & 0x3) { // REVISAR (Si diferenciar los otros registros de los de uso general)(Si se debe propagar el signo)
+    switch((operando >> 24) & 0x3) {
         case 1:
             switch((operando >> 6) & 0x3) {
                 case 0: // EAX
@@ -626,7 +625,7 @@ void getGeneral(VM *MaquinaVirtual, int operando,int *valor){
 
 void setGeneral(VM *MaquinaVirtual, int operando, int valor){
     if(((operando >> 24) & 0x3) == 1)
-        switch((operando >> 6) & 0x3) { // REVISAR (Si diferenciar los otros registros de los de uso general) (Si estan bien truncados los valores)
+        switch((operando >> 6) & 0x3) {
             case 0: // EAX
                 MaquinaVirtual->Registros[operando & 0x1F] = valor;
                 break;
@@ -1333,7 +1332,7 @@ void errores(int error) {
             printf("No es posible dividir por cero. Proceso detenido.");
             break;
         case 3:
-            printf("Segmentation Fall. Se produjo una invasion de memoria.");
+            printf("Segmentation Fault. Se produjo una invasion de memoria.");
             break;
         case 4:
             printf("Fallo de Segmento. Codigo de segmento inexistente.");
