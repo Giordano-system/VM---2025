@@ -1031,8 +1031,6 @@ void sys(VM *MaquinaVirtual){
         char car;
         base = MaquinaVirtual->Registros[EDX];
         char cadena[1024];
-        printf(" [%04X]: ", logica_fisica(*MaquinaVirtual,base));
-
         fgets(cadena,1024,stdin);
         cadena[strcspn(cadena,"\n")]='\0';
         i=0;
@@ -1053,7 +1051,6 @@ void sys(VM *MaquinaVirtual){
         base = MaquinaVirtual->Registros[EDX];
         posicion = logica_fisica(*MaquinaVirtual, base);
         car = MaquinaVirtual->Memoria[posicion];
-        printf(" [%04X]: ", posicion);
         while (car!='\0'){
             printf("%c", car);
             base++;
