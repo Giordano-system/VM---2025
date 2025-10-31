@@ -154,12 +154,13 @@ int main(int argc, char *argv[]){
     int debug, cantParametros, i, j, puntero, n;
     char **parametros;
 
+    /*
     // Forma de ejecutar un programa como si estuvieras en consola
     static char *args[] = {"programa.exe", "sample.vmx", "-d" ,NULL};
 
     argc = 3;       // cantidad de argumentos
     argv = args;    // apuntamos argv a nuestro arreglo
-
+    */
 
     // Inicializar variables
     debug = 0;
