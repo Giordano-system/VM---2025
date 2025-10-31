@@ -38,6 +38,10 @@ void getMemoria(VM *MaquinaVirtual, int operando, int *valor){
         *valor |= aux;
         pos++;
     }
+    if (tamCelda == 1)
+        *valor = (*valor<<24)>>24;
+    if (tamCelda == 2)
+        *valor = (*valor<<16)>>16;
     MaquinaVirtual->Registros[MBR] = *valor; //El valor trabajado en la memoria lo copio directo en la MBR
 }
 

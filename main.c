@@ -155,9 +155,9 @@ int main(int argc, char *argv[]){
     char **parametros;
 
     // Forma de ejecutar un programa como si estuvieras en consola
-    static char *args[] = {"programa.exe", "pruebaSYS37F.vmx", "archivo.vmi", "-d", NULL};
+    static char *args[] = {"programa.exe", "sample.vmx", "-d" ,NULL};
 
-    argc = 4;       // cantidad de argumentos
+    argc = 3;       // cantidad de argumentos
     argv = args;    // apuntamos argv a nuestro arreglo
 
 
@@ -963,14 +963,13 @@ void sys(VM *MaquinaVirtual){
                         //TERMINAR SYS
                     }
                 }
-                if (!(valido && (valor>=valorMin && valor<=valorMax)))
-                    valido = 0;
             }while (!valido);
             int j;
             long int posicion;
             for (j=0;j<numBytes;j++){
                 posicion = logica_fisica(*MaquinaVirtual, base + i*numBytes + j);
                 MaquinaVirtual->Memoria[posicion] = shiftRightLogico(valor, 8*(numBytes-j-1));
+                printf(" ---- %d \n",MaquinaVirtual->Memoria[posicion]);
             }
 
         }
